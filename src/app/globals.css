@@ -19,8 +19,33 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
+}
+
+input {
+  appearance: none;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.starter-active-control {
+  border-color: #70462b;
+  background-color: #70462b;
+  color: #fffaf4;
+}
+
+.starter-active-control:hover,
+.starter-active-control:focus,
+.starter-active-control:active {
+  border-color: #70462b;
+  background-color: #70462b;
+  color: #fffaf4;
 }
 
 ::selection {
