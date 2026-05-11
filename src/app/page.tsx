@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   calculateFormula,
   CLASSIC_RATIOS,
@@ -308,6 +308,7 @@ function ratioEquivalentLabel(
 }
 
 export default function Home() {
+  const headerRef = useRef<HTMLElement | null>(null);
   const [mode, setMode] = useState<BuildMode>("flour");
   const [measureUnit, setMeasureUnit] = useState<MeasureUnit>("g");
   const [amount, setAmount] = useState("100");
@@ -423,6 +424,28 @@ export default function Home() {
         ? "cup"
         : "cups"
       : unitShortLabel(measureUnit);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    if (!header || motionQuery.matches) {
+      return;
+    }
+
+    function updateHeaderDepth() {
+      const offset = Math.min(window.scrollY * 0.4, 40);
+      header?.style.setProperty("transform", `translateY(${offset}px)`);
+    }
+
+    updateHeaderDepth();
+    window.addEventListener("scroll", updateHeaderDepth, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", updateHeaderDepth);
+      header.style.removeProperty("transform");
+    };
+  }, []);
 
   function changeMode(nextMode: BuildMode) {
     if (nextMode === mode) {
@@ -563,7 +586,10 @@ export default function Home() {
   return (
     <main className="starter-page min-h-screen px-5 py-6 text-[#3b2618] sm:px-8 lg:px-12">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <header className="space-y-3 pt-2 sm:pt-6">
+        <header
+          className="starter-header space-y-3 pt-2 sm:pt-6"
+          ref={headerRef}
+        >
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#8c5f3f]">
             South Jersey Sourdough
           </p>
@@ -586,7 +612,8 @@ export default function Home() {
                 <span className="field-label">Build Mode</span>
                 <div
                   aria-label="Build mode"
-                  className="grid gap-2 rounded-md border border-[#c8a98c] bg-[#f4e6d7] p-1 sm:grid-cols-2"
+                  className="build-mode-toggle grid gap-2 rounded-md border border-[#c8a98c] bg-[#f4e6d7] p-1 sm:grid-cols-2"
+                  data-mode={mode}
                   role="group"
                 >
                   <SegmentButton
@@ -650,7 +677,7 @@ export default function Home() {
               <div className="grid gap-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <span className="field-label">Feeding Ratio</span>
-                  <p className="max-w-xl text-sm leading-6 text-[#76563e]">
+                  <p className="helper-copy max-w-xl text-sm leading-6 text-[#76563e]">
                     Ratio means starter : flour : water. This is the way most
                     bakers describe a feeding.
                   </p>
@@ -709,7 +736,7 @@ export default function Home() {
                     {customRatioError}
                   </p>
                 ) : null}
-                <p className="text-sm font-semibold leading-6 text-[#76563e]">
+                <p className="helper-copy text-sm font-semibold leading-6 text-[#76563e]">
                   Equivalent inoculation:{" "}
                   <span className="font-bold text-[#321f14]">
                     {formatDisplay(inoculation, 1)}%
@@ -781,21 +808,21 @@ export default function Home() {
               </div>
 
               <details
-                className="rounded-lg border border-dotted border-[#d4b89f] bg-[#fff7ef] p-4"
+                className="advanced-options rounded-lg border border-dotted border-[#d4b89f] bg-[#fff7ef] p-4"
                 onToggle={(event) =>
                   setAdvancedOpen(event.currentTarget.open)
                 }
                 open={advancedOpen}
               >
-                <summary className="cursor-pointer list-none text-sm font-extrabold uppercase tracking-[0.16em] text-[#7a563d]">
+                <summary className="advanced-summary field-label cursor-pointer list-none">
                   Advanced Options
                 </summary>
-                <div className="mt-4 grid gap-3">
+                <div className="advanced-options-content mt-4 grid gap-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <span className="field-label">
                       Use inoculation percentage instead
                     </span>
-                    <p className="max-w-xl text-sm leading-6 text-[#76563e]">
+                    <p className="helper-copy max-w-xl text-sm leading-6 text-[#76563e]">
                       Inoculation is the amount of mature starter compared to
                       the new flour. Lower percentages slow the build; higher
                       percentages speed it up.
@@ -842,7 +869,7 @@ export default function Home() {
                       </span>
                     </div>
                   </label>
-                  <p className="text-sm font-semibold leading-6 text-[#76563e]">
+                  <p className="helper-copy text-sm font-semibold leading-6 text-[#76563e]">
                     Equivalent ratio at this feed hydration:{" "}
                     <span className="font-bold text-[#321f14]">
                       {equivalentRatio}
@@ -856,7 +883,7 @@ export default function Home() {
                   <label className="field-label" htmlFor="room-temperature">
                     Room Temperature
                   </label>
-                  <span className="text-lg font-bold text-[#321f14]">
+                  <span className="temperature-value text-lg font-bold text-[#321f14]">
                     {roomTemperature}°F
                   </span>
                 </div>
@@ -873,7 +900,7 @@ export default function Home() {
                   value={roomTemperature}
                 />
                 <p
-                  className="rounded-md border border-dotted border-[#d7b99e] bg-[#fbf2e8] px-4 py-3 text-sm font-semibold leading-6 text-[#6f4f39]"
+                  className="helper-copy rounded-md border border-dotted border-[#d7b99e] bg-[#fbf2e8] px-4 py-3 text-sm font-semibold leading-6 text-[#6f4f39]"
                   id="pace-note"
                 >
                   {fermentationNote}
@@ -955,13 +982,18 @@ export default function Home() {
             <div className="flex h-full flex-col gap-5">
               <output
                 aria-live="polite"
-                className="rounded-lg border border-[#d5b69b] bg-[#fff7ef] p-4"
+                className="final-weight-card rounded-lg border border-[#d5b69b] bg-[#fff7ef] p-4"
               >
                 <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#8c5f3f]">
                   Final Starter Weight
                 </p>
-                <p className="mt-2 text-5xl font-semibold tracking-normal text-[#321f14] transition-all sm:text-6xl">
-                  {finalTotalDisplayValue}
+                <p className="mt-2 text-6xl font-bold tracking-normal text-[#321f14] transition-all sm:text-7xl">
+                  <span
+                    className="result-value"
+                    key={finalTotalDisplayValue}
+                  >
+                    {finalTotalDisplayValue}
+                  </span>
                   <span className="ml-2 text-2xl text-[#76563e]">
                     {finalTotalDisplayUnit}
                   </span>
@@ -1019,7 +1051,7 @@ export default function Home() {
               ) : null}
 
               {hasJarCapacity ? (
-                <div className="grid gap-4 rounded-lg border border-dotted border-[#d6b99e] bg-[#fffaf4] p-4">
+                <div className="jar-fill-card grid gap-4 rounded-lg border border-dotted border-[#d6b99e] bg-[#fffaf4] p-4">
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#8c5f3f]">
                       Jar Fill
@@ -1180,8 +1212,9 @@ function ResultRow({
       <span className="text-base font-semibold text-[#4a2f1d]">{label}</span>
       <span className="text-right transition-all">
         <span
+          key={`${label}-${value}-${detail ?? ""}`}
           className={`block font-semibold text-[#321f14] ${
-            prominent ? "text-2xl" : "text-lg"
+            prominent ? "result-value text-2xl" : "result-value text-lg"
           }`}
         >
           {value}
@@ -1219,7 +1252,7 @@ function JarMeter({
       </div>
       <div className="h-3 overflow-hidden rounded-full bg-[#e7d5c2]">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${
+          className={`jar-fill-bar h-full rounded-full ${
             tone === "warning" ? "bg-[#b45335]" : "bg-[#8d704d]"
           }`}
           style={{ width: `${Math.min(percent, 100)}%` }}
