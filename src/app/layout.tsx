@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Starter Feeding Calculator | South Jersey Sourdough",
   description:
-    "A sourdough starter feeding calculator for starter, flour, water, and jar capacity.",
+    "A sourdough starter feeding and inoculation calculator for starter, flour, water, and jar capacity.",
 };
 
 export default function RootLayout({
