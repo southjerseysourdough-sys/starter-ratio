@@ -10,7 +10,7 @@ import {
   type RatioPreset,
 } from "./calculator";
 
-type MeasureUnit = "g" | "oz" | "cup" | "tbsp" | "tsp";
+type MeasureUnit = "cup" | "g" | "oz";
 type JarUnit = "g" | "oz" | "L";
 type StarterType = "liquid" | "stiff" | "custom";
 type FeedHydration = "100" | "75" | "60" | "custom";
@@ -18,18 +18,23 @@ type FormulaIngredient = "flour" | "starter" | "water";
 
 const GRAMS_PER_OUNCE = 28.349523125;
 const GRAMS_PER_LITER = 1000;
-const VOLUME_UNITS = new Set<MeasureUnit>(["cup", "tbsp", "tsp"]);
+const VOLUME_UNITS = new Set<MeasureUnit>(["cup"]);
+const CUP_FRACTIONS = [
+  { label: "1/4", value: 1 / 4 },
+  { label: "1/3", value: 1 / 3 },
+  { label: "1/2", value: 1 / 2 },
+  { label: "2/3", value: 2 / 3 },
+  { label: "3/4", value: 3 / 4 },
+];
 
 const MEASURE_UNITS: Array<{
   label: string;
   shortLabel: string;
   value: MeasureUnit;
 }> = [
+  { label: "Cups", shortLabel: "cups", value: "cup" },
   { label: "Grams", shortLabel: "g", value: "g" },
   { label: "Ounces", shortLabel: "oz", value: "oz" },
-  { label: "Cups", shortLabel: "cups", value: "cup" },
-  { label: "Tablespoons", shortLabel: "tbsp", value: "tbsp" },
-  { label: "Teaspoons", shortLabel: "tsp", value: "tsp" },
 ];
 
 const INOCULATION_PRESETS = [
@@ -104,20 +109,14 @@ function gramsPerVolumeUnit(
   }
 
   if (ingredient === "flour") {
-    if (unit === "cup") return 120;
-    if (unit === "tbsp") return 7.5;
-    return 2.5;
+    return 120;
   }
 
   if (ingredient === "starter" && starterType === "stiff") {
-    if (unit === "cup") return 180;
-    if (unit === "tbsp") return 11.25;
-    return 3.75;
+    return 180;
   }
 
-  if (unit === "cup") return 240;
-  if (unit === "tbsp") return 15;
-  return 5;
+  return 240;
 }
 
 function measureToGrams(
@@ -143,6 +142,63 @@ function unitShortLabel(unit: MeasureUnit) {
   return (
     MEASURE_UNITS.find((option) => option.value === unit)?.shortLabel ?? unit
   );
+}
+
+function nearestCupFractionLabel(fractionalCups: number) {
+  const exactMatch = CUP_FRACTIONS.find(
+    (fraction) => Math.abs(fractionalCups - fraction.value) < 0.025,
+  );
+
+  if (exactMatch) {
+    return { carry: 0, label: exactMatch.label };
+  }
+
+  if (fractionalCups <= 0.4) {
+    return { carry: 0, label: "1/4" };
+  }
+
+  if (fractionalCups < 0.585) {
+    return { carry: 0, label: "1/2" };
+  }
+
+  if (fractionalCups < 0.71) {
+    return { carry: 0, label: "2/3" };
+  }
+
+  if (fractionalCups < 0.875) {
+    return { carry: 0, label: "3/4" };
+  }
+
+  return { carry: 1, label: "" };
+}
+
+function formatCupMeasure(cups: number) {
+  const safeCups = Math.max(cups, 0);
+  const wholeCups = Math.floor(safeCups);
+  const fractionalCups = safeCups - wholeCups;
+
+  if (safeCups === 0) {
+    return "0 cups";
+  }
+
+  if (fractionalCups < 0.025) {
+    return `${wholeCups} ${wholeCups === 1 ? "cup" : "cups"}`;
+  }
+
+  const fraction = nearestCupFractionLabel(fractionalCups);
+  const adjustedWholeCups = wholeCups + fraction.carry;
+
+  if (!fraction.label) {
+    return `${adjustedWholeCups} ${
+      adjustedWholeCups === 1 ? "cup" : "cups"
+    }`;
+  }
+
+  if (adjustedWholeCups === 0) {
+    return `${fraction.label} cup`;
+  }
+
+  return `${adjustedWholeCups} ${fraction.label} cups`;
 }
 
 function jarToGrams(value: string, unit: JarUnit) {
@@ -290,7 +346,7 @@ export default function Home() {
   )?.label;
   const hasJarCapacity =
     jarCapacity.trim().length > 0 && jarCapacityGrams > 0;
-  const outputDecimals = measureUnit === "oz" ? 2 : 1;
+  const outputDecimals = measureUnit === "oz" ? 2 : 0;
   const amountLabel =
     mode === "flour" ? "New flour to feed" : "Final starter amount";
   const customRatioError =
@@ -338,14 +394,18 @@ export default function Home() {
       ingredient,
       starterType,
     );
+    const value =
+      measureUnit === "cup"
+        ? formatCupMeasure(converted)
+        : `${formatDisplay(converted, outputDecimals)} ${unitShortLabel(
+            measureUnit,
+          )}`;
 
     return {
       detail: showVolumeNote
-        ? `${formatDisplay(grams, 1)} g estimated`
+        ? `${formatDisplay(grams, 0)} g estimated`
         : undefined,
-      value: `${formatDisplay(converted, outputDecimals)} ${unitShortLabel(
-        measureUnit,
-      )}`,
+      value,
     };
   }
 
@@ -353,6 +413,16 @@ export default function Home() {
   const flourAmount = measuredAmount(results.flour, "flour");
   const waterAmount = measuredAmount(results.water, "water");
   const finalTotalAmount = measuredAmount(results.finalTotal, "starter");
+  const finalTotalDisplayValue =
+    measureUnit === "cup"
+      ? finalTotalAmount.value.replace(/ cups?$/, "")
+      : finalTotalAmount.value.split(" ")[0];
+  const finalTotalDisplayUnit =
+    measureUnit === "cup"
+      ? finalTotalAmount.value.endsWith(" cup")
+        ? "cup"
+        : "cups"
+      : unitShortLabel(measureUnit);
 
   function changeMode(nextMode: BuildMode) {
     if (nextMode === mode) {
@@ -891,9 +961,9 @@ export default function Home() {
                   Final Starter Weight
                 </p>
                 <p className="mt-2 text-5xl font-semibold tracking-normal text-[#321f14] transition-all sm:text-6xl">
-                  {finalTotalAmount.value.split(" ")[0]}
+                  {finalTotalDisplayValue}
                   <span className="ml-2 text-2xl text-[#76563e]">
-                    {unitShortLabel(measureUnit)}
+                    {finalTotalDisplayUnit}
                   </span>
                 </p>
                 {finalTotalAmount.detail ? (

@@ -51,12 +51,14 @@ Ratio mapping:
 
 Measurement units:
 - Internal formula math stays gram-based.
-- Main amount and results support grams, ounces, cups, tablespoons, and teaspoons.
+- Main amount and results support cups, grams, and ounces.
 - Volume units are estimates and should show a gentle note: "Volume measurements are estimates. For best accuracy, use grams."
-- Flour estimates: 1 cup = 120g, 1 tbsp = 7.5g, 1 tsp = 2.5g.
-- Water estimates: 1 cup = 240g, 1 tbsp = 15g, 1 tsp = 5g.
-- Liquid starter estimates: 1 cup = 240g, 1 tbsp = 15g, 1 tsp = 5g.
-- Stiff starter estimates: 1 cup = 180g, 1 tbsp = 11.25g, 1 tsp = 3.75g.
+- Cup result displays use American kitchen fractions, not decimals, for example `1/2 cup` and `1 1/3 cups`.
+- Gram result displays round to whole grams; ounces keep two decimals.
+- Flour estimate: 1 cup = 120g.
+- Water estimate: 1 cup = 240g.
+- Liquid starter estimate: 1 cup = 240g.
+- Stiff starter estimate: 1 cup = 180g.
 - Custom starter volume display currently uses the liquid-starter estimate unless stiff starter is selected.
 
 Starter type:
@@ -96,7 +98,7 @@ Latest ratio-first redesign verification:
 - `100g flour @ 1:2:2 = 50g starter, 100g flour, 100g water, 250g total, 50% inoculation`.
 - `225g final @ 1:4:4 = 25g starter, 100g flour, 100g water`.
 - `20% advanced inoculation = equivalent ratio 1:5:5 and 20g starter for 100g flour`.
-- `13.333 tbsp flour uses 7.5g/tbsp = approximately 100g flour internally`.
+- Cup formatting checks: `0.5 cups = 1/2 cup`, `1.333 cups = 1 1/3 cups`, `0.4 cups = 1/4 cup`, `0.6 cups = 2/3 cup`.
 
 There was already a dev server running on `http://localhost:3000` during the last session.
 
