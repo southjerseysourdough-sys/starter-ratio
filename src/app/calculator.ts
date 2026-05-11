@@ -25,6 +25,7 @@ export const CLASSIC_RATIOS: RatioPreset[] = [
   { label: "1:1:1", starter: 1, flour: 1, water: 1 },
   { label: "1:2:2", starter: 1, flour: 2, water: 2 },
   { label: "1:3:3", starter: 1, flour: 3, water: 3 },
+  { label: "1:4:4", starter: 1, flour: 4, water: 4 },
   { label: "1:5:5", starter: 1, flour: 5, water: 5 },
   { label: "1:10:10", starter: 1, flour: 10, water: 10 },
 ];

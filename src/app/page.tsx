@@ -10,19 +10,33 @@ import {
   type RatioPreset,
 } from "./calculator";
 
-type WeightUnit = "g" | "oz";
+type MeasureUnit = "g" | "oz" | "cup" | "tbsp" | "tsp";
 type JarUnit = "g" | "oz" | "L";
 type StarterType = "liquid" | "stiff" | "custom";
 type FeedHydration = "100" | "75" | "60" | "custom";
+type FormulaIngredient = "flour" | "starter" | "water";
 
 const GRAMS_PER_OUNCE = 28.349523125;
 const GRAMS_PER_LITER = 1000;
+const VOLUME_UNITS = new Set<MeasureUnit>(["cup", "tbsp", "tsp"]);
+
+const MEASURE_UNITS: Array<{
+  label: string;
+  shortLabel: string;
+  value: MeasureUnit;
+}> = [
+  { label: "Grams", shortLabel: "g", value: "g" },
+  { label: "Ounces", shortLabel: "oz", value: "oz" },
+  { label: "Cups", shortLabel: "cups", value: "cup" },
+  { label: "Tablespoons", shortLabel: "tbsp", value: "tbsp" },
+  { label: "Teaspoons", shortLabel: "tsp", value: "tsp" },
+];
 
 const INOCULATION_PRESETS = [
   { label: "10%", value: 10, helper: "slower" },
   { label: "20%", value: 20, helper: "balanced" },
   { label: "25%", value: 25, helper: "balanced" },
-  { label: "33%", value: 33, helper: "faster" },
+  { label: "33%", value: 100 / 3, helper: "faster" },
   { label: "50%", value: 50, helper: "faster" },
 ];
 
@@ -42,8 +56,8 @@ const STARTER_TYPES: Array<{
     value: "stiff",
   },
   {
-    label: "Custom Hydration",
-    description: "set your starter",
+    label: "Custom Starter",
+    description: "set hydration",
     value: "custom",
   },
 ];
@@ -76,13 +90,59 @@ function formatDisplay(value: number, maximumFractionDigits = 1) {
   }).format(Math.max(value, 0));
 }
 
-function weightToGrams(value: string, unit: WeightUnit) {
-  const amount = Math.max(toNumber(value), 0);
-  return unit === "oz" ? amount * GRAMS_PER_OUNCE : amount;
+function isVolumeUnit(unit: MeasureUnit) {
+  return VOLUME_UNITS.has(unit);
 }
 
-function gramsToWeight(grams: number, unit: WeightUnit) {
-  return unit === "oz" ? grams / GRAMS_PER_OUNCE : grams;
+function gramsPerVolumeUnit(
+  unit: MeasureUnit,
+  ingredient: FormulaIngredient,
+  starterType: StarterType,
+) {
+  if (!isVolumeUnit(unit)) {
+    return unit === "oz" ? GRAMS_PER_OUNCE : 1;
+  }
+
+  if (ingredient === "flour") {
+    if (unit === "cup") return 120;
+    if (unit === "tbsp") return 7.5;
+    return 2.5;
+  }
+
+  if (ingredient === "starter" && starterType === "stiff") {
+    if (unit === "cup") return 180;
+    if (unit === "tbsp") return 11.25;
+    return 3.75;
+  }
+
+  if (unit === "cup") return 240;
+  if (unit === "tbsp") return 15;
+  return 5;
+}
+
+function measureToGrams(
+  value: string,
+  unit: MeasureUnit,
+  ingredient: FormulaIngredient,
+  starterType: StarterType,
+) {
+  const amount = Math.max(toNumber(value), 0);
+  return amount * gramsPerVolumeUnit(unit, ingredient, starterType);
+}
+
+function gramsToMeasure(
+  grams: number,
+  unit: MeasureUnit,
+  ingredient: FormulaIngredient,
+  starterType: StarterType,
+) {
+  return grams / gramsPerVolumeUnit(unit, ingredient, starterType);
+}
+
+function unitShortLabel(unit: MeasureUnit) {
+  return (
+    MEASURE_UNITS.find((option) => option.value === unit)?.shortLabel ?? unit
+  );
 }
 
 function jarToGrams(value: string, unit: JarUnit) {
@@ -163,7 +223,15 @@ function parseRatio(value: string): RatioPreset | null {
   }
 
   const [starter, flour, water] = parts;
-  return { label: value, starter, flour, water };
+  return {
+    label: `${cleanNumber(starter, 2)}:${cleanNumber(flour, 2)}:${cleanNumber(
+      water,
+      2,
+    )}`,
+    starter,
+    flour,
+    water,
+  };
 }
 
 function ratioEquivalentLabel(
@@ -185,12 +253,12 @@ function ratioEquivalentLabel(
 
 export default function Home() {
   const [mode, setMode] = useState<BuildMode>("flour");
-  const [weightUnit, setWeightUnit] = useState<WeightUnit>("g");
+  const [measureUnit, setMeasureUnit] = useState<MeasureUnit>("g");
   const [amount, setAmount] = useState("100");
-  const [amountGrams, setAmountGrams] = useState(100);
   const [inoculation, setInoculation] = useState(25);
   const [customInoculation, setCustomInoculation] = useState("25");
   const [customRatio, setCustomRatio] = useState("1:4:4");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [starterType, setStarterType] = useState<StarterType>("liquid");
   const [customStarterHydration, setCustomStarterHydration] = useState("100");
   const [feedHydration, setFeedHydration] = useState<FeedHydration>("100");
@@ -208,6 +276,12 @@ export default function Home() {
     feedHydration,
     customFeedHydration,
   );
+  const amountIngredient: FormulaIngredient =
+    mode === "flour" ? "flour" : "starter";
+  const amountGrams = useMemo(
+    () => measureToGrams(amount, measureUnit, amountIngredient, starterType),
+    [amount, amountIngredient, measureUnit, starterType],
+  );
   const activeClassicRatio = CLASSIC_RATIOS.find(
     (preset) =>
       Math.abs(ratioToInoculationPercent(preset) - inoculation) < 0.15 &&
@@ -216,9 +290,14 @@ export default function Home() {
   )?.label;
   const hasJarCapacity =
     jarCapacity.trim().length > 0 && jarCapacityGrams > 0;
-  const outputDecimals = weightUnit === "oz" ? 2 : 1;
+  const outputDecimals = measureUnit === "oz" ? 2 : 1;
   const amountLabel =
-    mode === "flour" ? "New Flour Amount" : "Desired Final Total";
+    mode === "flour" ? "New flour to feed" : "Final starter amount";
+  const customRatioError =
+    customRatio.trim().length > 0 && !parseRatio(customRatio)
+      ? "Use starter:flour:water, like 1:4:4."
+      : "";
+  const showVolumeNote = isVolumeUnit(measureUnit);
 
   const results = useMemo(
     () =>
@@ -252,13 +331,56 @@ export default function Home() {
     currentFeedHydration,
   );
 
-  function changeWeightUnit(nextUnit: WeightUnit) {
-    if (nextUnit === weightUnit) {
+  function measuredAmount(grams: number, ingredient: FormulaIngredient) {
+    const converted = gramsToMeasure(
+      grams,
+      measureUnit,
+      ingredient,
+      starterType,
+    );
+
+    return {
+      detail: showVolumeNote
+        ? `${formatDisplay(grams, 1)} g estimated`
+        : undefined,
+      value: `${formatDisplay(converted, outputDecimals)} ${unitShortLabel(
+        measureUnit,
+      )}`,
+    };
+  }
+
+  const starterAmount = measuredAmount(results.starter, "starter");
+  const flourAmount = measuredAmount(results.flour, "flour");
+  const waterAmount = measuredAmount(results.water, "water");
+  const finalTotalAmount = measuredAmount(results.finalTotal, "starter");
+
+  function changeMode(nextMode: BuildMode) {
+    if (nextMode === mode) {
       return;
     }
 
-    setAmount(cleanNumber(gramsToWeight(amountGrams, nextUnit), 2));
-    setWeightUnit(nextUnit);
+    const nextIngredient = nextMode === "flour" ? "flour" : "starter";
+    setAmount(
+      cleanNumber(
+        gramsToMeasure(amountGrams, measureUnit, nextIngredient, starterType),
+        2,
+      ),
+    );
+    setMode(nextMode);
+  }
+
+  function changeMeasureUnit(nextUnit: MeasureUnit) {
+    if (nextUnit === measureUnit) {
+      return;
+    }
+
+    setAmount(
+      cleanNumber(
+        gramsToMeasure(amountGrams, nextUnit, amountIngredient, starterType),
+        2,
+      ),
+    );
+    setMeasureUnit(nextUnit);
   }
 
   function changeJarUnit(nextUnit: JarUnit) {
@@ -272,18 +394,20 @@ export default function Home() {
 
   function updateAmount(value: string) {
     setAmount(value);
-    setAmountGrams(weightToGrams(value, weightUnit));
   }
 
   function updateInoculation(value: number) {
     const safeValue = Math.max(value, 0);
     setInoculation(safeValue);
     setCustomInoculation(cleanNumber(safeValue, 2));
+    setCustomRatio(ratioEquivalentLabel(safeValue, currentFeedHydration));
   }
 
   function updateCustomInoculation(value: string) {
     setCustomInoculation(value);
-    setInoculation(Math.max(toNumber(value), 0));
+    const safeValue = Math.max(toNumber(value), 0);
+    setInoculation(safeValue);
+    setCustomRatio(ratioEquivalentLabel(safeValue, currentFeedHydration));
   }
 
   function setFeedHydrationPercentValue(nextFeedHydration: number) {
@@ -300,6 +424,23 @@ export default function Home() {
     }
 
     setCustomFeedHydration(rounded);
+  }
+
+  function chooseFeedHydration(nextFeedHydration: FeedHydration) {
+    setFeedHydration(nextFeedHydration);
+    const nextFeedHydrationValue =
+      nextFeedHydration === "custom"
+        ? Math.max(toNumber(customFeedHydration), 0)
+        : Number(nextFeedHydration);
+
+    setCustomRatio(ratioEquivalentLabel(inoculation, nextFeedHydrationValue));
+  }
+
+  function updateCustomFeedHydration(value: string) {
+    setCustomFeedHydration(value);
+    setCustomRatio(
+      ratioEquivalentLabel(inoculation, Math.max(toNumber(value), 0)),
+    );
   }
 
   function selectRatio(ratio: RatioPreset) {
@@ -321,6 +462,28 @@ export default function Home() {
     }
   }
 
+  function updateStarterType(nextStarterType: StarterType) {
+    if (
+      mode === "total" &&
+      isVolumeUnit(measureUnit) &&
+      nextStarterType !== starterType
+    ) {
+      setAmount(
+        cleanNumber(
+          gramsToMeasure(
+            amountGrams,
+            measureUnit,
+            "starter",
+            nextStarterType,
+          ),
+          2,
+        ),
+      );
+    }
+
+    setStarterType(nextStarterType);
+  }
+
   function selectJarDefault(liters: "1" | "1.5") {
     setJarUnit("L");
     setJarCapacity(liters);
@@ -340,7 +503,8 @@ export default function Home() {
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-[#6f4f39]">
               Build a feeding formula by flour amount or final starter weight,
-              with inoculation, hydration, and jar rise in view.
+              using familiar ratios with hydration, inoculation, and jar rise
+              in view.
             </p>
           </div>
         </header>
@@ -357,13 +521,15 @@ export default function Home() {
                 >
                   <SegmentButton
                     active={mode === "flour"}
-                    label="Build by Flour Amount"
-                    onClick={() => setMode("flour")}
+                    helper="Use this when you know how much fresh flour you want to add."
+                    label="Feed by flour amount"
+                    onClick={() => changeMode("flour")}
                   />
                   <SegmentButton
                     active={mode === "total"}
-                    label="Build by Final Total"
-                    onClick={() => setMode("total")}
+                    helper="Use this when you know how much starter you want to end up with."
+                    label="Build to final amount"
+                    onClick={() => changeMode("total")}
                   />
                 </div>
               </div>
@@ -380,87 +546,104 @@ export default function Home() {
                       value={amount}
                     />
                     <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-[#8c6b54]">
-                      {weightUnit}
+                      {unitShortLabel(measureUnit)}
                     </span>
                   </div>
                 </label>
 
                 <div className="grid gap-2">
-                  <span className="field-label">Weight Unit</span>
-                  <div
-                    aria-label="Weight unit"
-                    className="grid grid-cols-2 rounded-md border border-[#c8a98c] bg-[#f4e6d7] p-1"
-                    role="group"
-                  >
-                    <SegmentButton
-                      active={weightUnit === "g"}
-                      label="Grams"
-                      onClick={() => changeWeightUnit("g")}
-                    />
-                    <SegmentButton
-                      active={weightUnit === "oz"}
-                      label="Ounces"
-                      onClick={() => changeWeightUnit("oz")}
-                    />
-                  </div>
+                  <label className="grid gap-2">
+                    <span className="field-label">Unit</span>
+                    <select
+                      className="input-standard"
+                      onChange={(event) =>
+                        changeMeasureUnit(event.target.value as MeasureUnit)
+                      }
+                      value={measureUnit}
+                    >
+                      {MEASURE_UNITS.map((unit) => (
+                        <option key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {showVolumeNote ? (
+                    <p className="text-sm font-semibold leading-6 text-[#76563e]">
+                      Volume measurements are estimates. For best accuracy, use
+                      grams.
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
               <div className="grid gap-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <span className="field-label">Inoculation Percentage</span>
+                  <span className="field-label">Feeding Ratio</span>
                   <p className="max-w-xl text-sm leading-6 text-[#76563e]">
-                    Use percentages or ratios, whichever feels natural. They
-                    drive the same formula and stay easy to translate.
+                    Ratio means starter : flour : water. This is the way most
+                    bakers describe a feeding.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
-                  {INOCULATION_PRESETS.map((preset) => (
-                    <PresetButton
-                      active={activeInoculationPreset === preset.value}
-                      helper={preset.helper}
-                      key={preset.label}
-                      label={preset.label}
-                      onClick={() => updateInoculation(preset.value)}
-                    />
-                  ))}
-                  <PresetButton
-                    active={!activeInoculationPreset}
-                    helper="set exact"
-                    label="Custom"
-                    onClick={() => updateInoculation(toNumber(customInoculation))}
-                  />
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                  {CLASSIC_RATIOS.map((preset) => {
+                    const mappedInoculation =
+                      ratioToInoculationPercent(preset);
+
+                    return (
+                      <button
+                        className={`preset-control min-h-16 rounded-md border px-2 py-2 text-center transition ${
+                          activeClassicRatio === preset.label
+                            ? "starter-active-control shadow-sm"
+                            : "border-dashed border-[#c8a98c] bg-[#fffaf4] text-[#4a2f1d] hover:border-[#8c5f3f] hover:bg-[#f4e6d7] hover:shadow-sm"
+                        }`}
+                        key={preset.label}
+                        onClick={() => selectRatio(preset)}
+                        type="button"
+                      >
+                        <span className="block text-lg font-bold">
+                          {preset.label}
+                        </span>
+                        <span className="block text-xs font-semibold opacity-80">
+                          {formatDisplay(mappedInoculation, 1)}%
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <label className="grid gap-2 sm:max-w-xs">
-                  <span className="sr-only">Custom inoculation percentage</span>
-                  <div className="relative">
-                    <input
-                      aria-label="Custom inoculation percentage"
-                      className="input-standard pr-12"
-                      inputMode="decimal"
-                      onChange={(event) =>
-                        updateCustomInoculation(event.target.value)
-                      }
-                      type="text"
-                      value={customInoculation}
-                    />
-                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-base font-bold text-[#8c6b54]">
-                      %
-                    </span>
-                  </div>
-                </label>
-                <p className="text-sm font-semibold leading-6 text-[#76563e]">
-                  Equivalent ratio at this feed hydration:{" "}
-                  <span className="font-bold text-[#321f14]">
-                    {equivalentRatio}
+                  <span className="text-sm font-bold text-[#76563e]">
+                    Custom ratio
                   </span>
-                </p>
-                <p className="text-sm leading-6 text-[#76563e]">
-                  Inoculation is the amount of mature starter used compared to
-                  the new flour added. A lower percentage slows the build. A
-                  higher percentage speeds it up.
+                  <input
+                    aria-describedby={
+                      customRatioError ? "custom-ratio-error" : undefined
+                    }
+                    aria-invalid={customRatioError ? "true" : "false"}
+                    aria-label="Custom ratio"
+                    className="input-standard"
+                    inputMode="decimal"
+                    onChange={(event) => updateCustomRatio(event.target.value)}
+                    placeholder="Example: 1:4:4"
+                    type="text"
+                    value={customRatio}
+                  />
+                </label>
+                {customRatioError ? (
+                  <p
+                    className="text-sm font-bold leading-6 text-[#8f321f]"
+                    id="custom-ratio-error"
+                  >
+                    {customRatioError}
+                  </p>
+                ) : null}
+                <p className="text-sm font-semibold leading-6 text-[#76563e]">
+                  Equivalent inoculation:{" "}
+                  <span className="font-bold text-[#321f14]">
+                    {formatDisplay(inoculation, 1)}%
+                  </span>
                 </p>
               </div>
 
@@ -474,7 +657,7 @@ export default function Home() {
                         description={option.description}
                         key={option.value}
                         label={option.label}
-                        onClick={() => setStarterType(option.value)}
+                        onClick={() => updateStarterType(option.value)}
                       />
                     ))}
                   </div>
@@ -499,12 +682,12 @@ export default function Home() {
                 <div className="grid gap-3">
                   <span className="field-label">Feed Hydration</span>
                   <div className="grid gap-2">
-                  {FEED_HYDRATIONS.map((option) => (
+                    {FEED_HYDRATIONS.map((option) => (
                       <OptionButton
                         active={feedHydration === option.value}
                         key={option.value}
                         label={option.label}
-                        onClick={() => setFeedHydration(option.value)}
+                        onClick={() => chooseFeedHydration(option.value)}
                       />
                     ))}
                   </div>
@@ -517,7 +700,7 @@ export default function Home() {
                         className="input-standard"
                         inputMode="decimal"
                         onChange={(event) =>
-                          setCustomFeedHydration(event.target.value)
+                          updateCustomFeedHydration(event.target.value)
                         }
                         type="text"
                         value={customFeedHydration}
@@ -527,50 +710,76 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid gap-3">
-                <span className="field-label">Classic Ratio Presets</span>
-                <p className="text-sm leading-6 text-[#76563e]">
-                  Ratio means starter : flour : water. Pick a ratio and the
-                  calculator sets both inoculation and feed hydration.
-                </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                  {CLASSIC_RATIOS.map((preset) => {
-                    const mappedInoculation =
-                      ratioToInoculationPercent(preset);
+              <details
+                className="rounded-lg border border-dotted border-[#d4b89f] bg-[#fff7ef] p-4"
+                onToggle={(event) =>
+                  setAdvancedOpen(event.currentTarget.open)
+                }
+                open={advancedOpen}
+              >
+                <summary className="cursor-pointer list-none text-sm font-extrabold uppercase tracking-[0.16em] text-[#7a563d]">
+                  Advanced Options
+                </summary>
+                <div className="mt-4 grid gap-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <span className="field-label">
+                      Use inoculation percentage instead
+                    </span>
+                    <p className="max-w-xl text-sm leading-6 text-[#76563e]">
+                      Inoculation is the amount of mature starter compared to
+                      the new flour. Lower percentages slow the build; higher
+                      percentages speed it up.
+                    </p>
+                  </div>
 
-                    return (
-                      <button
-                        className={`preset-control min-h-14 rounded-md border px-2 text-sm font-bold transition ${
-                          activeClassicRatio === preset.label
-                            ? "starter-active-control shadow-sm"
-                            : "border-dashed border-[#c8a98c] bg-[#fffaf4] text-[#4a2f1d] hover:border-[#8c5f3f] hover:bg-[#f4e6d7] hover:shadow-sm"
-                        }`}
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {INOCULATION_PRESETS.map((preset) => (
+                      <PresetButton
+                        active={activeInoculationPreset === preset.value}
+                        helper={preset.helper}
                         key={preset.label}
-                        onClick={() => selectRatio(preset)}
-                        type="button"
-                      >
-                        <span className="block text-base">{preset.label}</span>
-                        <span className="block text-xs font-semibold opacity-80">
-                          {formatDisplay(mappedInoculation, 1)}%
-                        </span>
-                      </button>
-                    );
-                  })}
+                        label={preset.label}
+                        onClick={() => updateInoculation(preset.value)}
+                      />
+                    ))}
+                    <PresetButton
+                      active={!activeInoculationPreset}
+                      helper="set exact"
+                      label="Custom"
+                      onClick={() =>
+                        updateInoculation(toNumber(customInoculation))
+                      }
+                    />
+                  </div>
+
+                  <label className="grid gap-2 sm:max-w-xs">
+                    <span className="text-sm font-bold text-[#76563e]">
+                      Custom inoculation
+                    </span>
+                    <div className="relative">
+                      <input
+                        aria-label="Custom inoculation percentage"
+                        className="input-standard pr-12"
+                        inputMode="decimal"
+                        onChange={(event) =>
+                          updateCustomInoculation(event.target.value)
+                        }
+                        type="text"
+                        value={customInoculation}
+                      />
+                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-base font-bold text-[#8c6b54]">
+                        %
+                      </span>
+                    </div>
+                  </label>
+                  <p className="text-sm font-semibold leading-6 text-[#76563e]">
+                    Equivalent ratio at this feed hydration:{" "}
+                    <span className="font-bold text-[#321f14]">
+                      {equivalentRatio}
+                    </span>
+                  </p>
                 </div>
-                <label className="grid gap-2 sm:max-w-xs">
-                  <span className="text-sm font-bold text-[#76563e]">
-                    Custom ratio
-                  </span>
-                  <input
-                    aria-label="Custom ratio"
-                    className="input-standard"
-                    inputMode="decimal"
-                    onChange={(event) => updateCustomRatio(event.target.value)}
-                    type="text"
-                    value={customRatio}
-                  />
-                </label>
-              </div>
+              </details>
 
               <div className="grid gap-3">
                 <div className="flex items-baseline justify-between gap-4">
@@ -682,45 +891,41 @@ export default function Home() {
                   Final Starter Weight
                 </p>
                 <p className="mt-2 text-5xl font-semibold tracking-normal text-[#321f14] transition-all sm:text-6xl">
-                  {formatDisplay(
-                    gramsToWeight(results.finalTotal, weightUnit),
-                    outputDecimals,
-                  )}
+                  {finalTotalAmount.value.split(" ")[0]}
                   <span className="ml-2 text-2xl text-[#76563e]">
-                    {weightUnit}
+                    {unitShortLabel(measureUnit)}
                   </span>
                 </p>
+                {finalTotalAmount.detail ? (
+                  <p className="mt-2 text-sm font-semibold text-[#76563e]">
+                    {finalTotalAmount.detail}
+                  </p>
+                ) : null}
               </output>
 
               <div className="grid gap-2" aria-live="polite">
                 <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#8c5f3f]">
                   Feeding Formula
                 </p>
+                <ResultRow label="Ratio" prominent value={equivalentRatio} />
                 <ResultRow
                   label="Inoculation"
                   value={`${formatDisplay(inoculation, 1)}%`}
                 />
-                <ResultRow label="Ratio" value={equivalentRatio} />
                 <ResultRow
                   label="Starter"
-                  value={`${formatDisplay(
-                    gramsToWeight(results.starter, weightUnit),
-                    outputDecimals,
-                  )} ${weightUnit}`}
+                  detail={starterAmount.detail}
+                  value={starterAmount.value}
                 />
                 <ResultRow
                   label="Flour"
-                  value={`${formatDisplay(
-                    gramsToWeight(results.flour, weightUnit),
-                    outputDecimals,
-                  )} ${weightUnit}`}
+                  detail={flourAmount.detail}
+                  value={flourAmount.value}
                 />
                 <ResultRow
                   label="Water"
-                  value={`${formatDisplay(
-                    gramsToWeight(results.water, weightUnit),
-                    outputDecimals,
-                  )} ${weightUnit}`}
+                  detail={waterAmount.detail}
+                  value={waterAmount.value}
                 />
                 <ResultRow
                   label="Feed Hydration"
@@ -732,12 +937,16 @@ export default function Home() {
                 />
                 <ResultRow
                   label="Total"
-                  value={`${formatDisplay(
-                    gramsToWeight(results.finalTotal, weightUnit),
-                    outputDecimals,
-                  )} ${weightUnit}`}
+                  detail={finalTotalAmount.detail}
+                  value={finalTotalAmount.value}
                 />
               </div>
+              {showVolumeNote ? (
+                <p className="rounded-md border border-dotted border-[#d7b99e] bg-[#fffaf4] px-3 py-2 text-sm font-semibold leading-6 text-[#6f4f39]">
+                  Volume measurements are estimates. For best accuracy, use
+                  grams.
+                </p>
+              ) : null}
 
               {hasJarCapacity ? (
                 <div className="grid gap-4 rounded-lg border border-dotted border-[#d6b99e] bg-[#fffaf4] p-4">
@@ -798,10 +1007,12 @@ export default function Home() {
 
 function SegmentButton({
   active,
+  helper,
   label,
   onClick,
 }: {
   active: boolean;
+  helper?: string;
   label: string;
   onClick: () => void;
 }) {
@@ -815,7 +1026,12 @@ function SegmentButton({
       onClick={onClick}
       type="button"
     >
-      {label}
+      <span className="block">{label}</span>
+      {helper ? (
+        <span className="mt-1 block text-xs font-semibold leading-5 opacity-80">
+          {helper}
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -878,12 +1094,33 @@ function OptionButton({
   );
 }
 
-function ResultRow({ label, value }: { label: string; value: string }) {
+function ResultRow({
+  detail,
+  label,
+  prominent = false,
+  value,
+}: {
+  detail?: string;
+  label: string;
+  prominent?: boolean;
+  value: string;
+}) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-dotted border-[#d9bfa8] py-2 last:border-b-0">
       <span className="text-base font-semibold text-[#4a2f1d]">{label}</span>
-      <span className="text-right text-lg font-semibold text-[#321f14] transition-all">
-        {value}
+      <span className="text-right transition-all">
+        <span
+          className={`block font-semibold text-[#321f14] ${
+            prominent ? "text-2xl" : "text-lg"
+          }`}
+        >
+          {value}
+        </span>
+        {detail ? (
+          <span className="block text-xs font-semibold text-[#76563e]">
+            {detail}
+          </span>
+        ) : null}
       </span>
     </div>
   );

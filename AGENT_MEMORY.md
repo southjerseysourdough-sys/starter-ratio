@@ -20,11 +20,13 @@ Brand direction: warm South Jersey Sourdough artisan feel. Use cream backgrounds
 
 The calculator has been refactored from "starter to keep" into a starter feeding and inoculation tool.
 
-Users can work either way:
-- Inoculation percentage presets/custom input.
-- Classic ratio presets/custom ratio input.
+The primary user-facing method is now feeding ratio. Most users should start from ratios like `1:4:4`; inoculation percentage is still supported as an advanced/pro control.
 
-These are equivalent controls. Do not lock the user into only inoculation percentages. If they choose a ratio, show the mapped inoculation percentage. If they choose an inoculation percentage, show the equivalent ratio.
+Users can work either way:
+- Feeding ratio presets/custom input in the main flow.
+- Inoculation percentage presets/custom input inside collapsed Advanced Options.
+
+These are equivalent controls. Do not remove inoculation or frame it as wrong. If users choose a ratio, show the mapped inoculation percentage. If they choose an inoculation percentage, show the equivalent ratio.
 
 Core definitions:
 - Inoculation means mature starter as a percentage of new flour added.
@@ -45,6 +47,17 @@ Ratio mapping:
 - `inoculation percentage = starter / flour * 100`.
 - Feed hydration from ratio is `water / flour * 100`.
 - Examples: `1:2:2 = 50%`, `1:5:5 = 20%`, `1:10:10 = 10%`.
+- Default visible ratio is `1:4:4` / `25%` inoculation.
+
+Measurement units:
+- Internal formula math stays gram-based.
+- Main amount and results support grams, ounces, cups, tablespoons, and teaspoons.
+- Volume units are estimates and should show a gentle note: "Volume measurements are estimates. For best accuracy, use grams."
+- Flour estimates: 1 cup = 120g, 1 tbsp = 7.5g, 1 tsp = 2.5g.
+- Water estimates: 1 cup = 240g, 1 tbsp = 15g, 1 tsp = 5g.
+- Liquid starter estimates: 1 cup = 240g, 1 tbsp = 15g, 1 tsp = 5g.
+- Stiff starter estimates: 1 cup = 180g, 1 tbsp = 11.25g, 1 tsp = 3.75g.
+- Custom starter volume display currently uses the liquid-starter estimate unless stiff starter is selected.
 
 Starter type:
 - Liquid Starter, 100% hydration.
@@ -77,6 +90,13 @@ Manual math checks run with Node:
 Commands passed after the refactor:
 - `npm run lint`
 - `npm run build`
+
+Latest ratio-first redesign verification:
+- `100g flour @ 1:4:4, liquid starter, 100% feed hydration = 25g starter, 100g flour, 100g water, 225g total, 25% inoculation`.
+- `100g flour @ 1:2:2 = 50g starter, 100g flour, 100g water, 250g total, 50% inoculation`.
+- `225g final @ 1:4:4 = 25g starter, 100g flour, 100g water`.
+- `20% advanced inoculation = equivalent ratio 1:5:5 and 20g starter for 100g flour`.
+- `13.333 tbsp flour uses 7.5g/tbsp = approximately 100g flour internally`.
 
 There was already a dev server running on `http://localhost:3000` during the last session.
 
