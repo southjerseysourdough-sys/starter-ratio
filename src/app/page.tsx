@@ -631,8 +631,41 @@ export default function Home() {
   }
 
   return (
-    <main className="starter-page min-h-screen px-5 py-6 text-[#3b2618] sm:px-8 lg:px-12">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <main className="starter-page min-h-screen text-[#3b2618]">
+      <nav className="sjs-topnav">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
+          <a
+            className="sjs-topnav-back group flex items-center gap-2"
+            href="https://southjerseysourdough.com"
+          >
+            <svg
+              aria-hidden="true"
+              className="sjs-topnav-arrow"
+              fill="none"
+              height="12"
+              viewBox="0 0 14 12"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M13 6H1M1 6L6 1M1 6L6 11"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.6"
+              />
+            </svg>
+            <span>southjerseysourdough.com</span>
+          </a>
+          <a
+            className="sjs-topnav-shop"
+            href="https://southjerseysourdough.com/collections"
+          >
+            Shop Starters
+          </a>
+        </div>
+      </nav>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-6 sm:px-8 lg:px-12">
         <header
           className="starter-header relative space-y-4 pt-2 sm:pt-6"
           ref={headerRef}
@@ -1163,14 +1196,74 @@ export default function Home() {
           </aside>
         </section>
 
-        <footer className="starter-footer py-6 text-sm font-semibold text-[#7a563d]">
-          Built for real sourdough feeding by{" "}
-          <span className="font-display italic text-[#5c3e29]">
-            South Jersey Sourdough
-          </span>
-          .
-        </footer>
       </div>
+
+      <footer className="sjs-footer">
+        <div className="sjs-footer-inner mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-12">
+          <div className="sjs-footer-grid">
+            {/* Brand column */}
+            <div className="sjs-footer-brand">
+              <a
+                className="sjs-footer-logo-link"
+                href="https://southjerseysourdough.com"
+                aria-label="South Jersey Sourdough — home"
+              >
+                <SJSJarIcon />
+                <div>
+                  <p className="sjs-footer-name">South Jersey<br />Sourdough</p>
+                  <p className="sjs-footer-verse">John 6:35</p>
+                </div>
+              </a>
+              <p className="sjs-footer-tagline">
+                Handcrafted sourdough starters made with patience, tradition, and care.
+              </p>
+            </div>
+
+            {/* Navigate column */}
+            <div>
+              <p className="sjs-footer-col-heading">Navigate</p>
+              <ul className="sjs-footer-links">
+                <li><a href="https://southjerseysourdough.com">Home</a></li>
+                <li><a href="https://southjerseysourdough.com/collections">Shop</a></li>
+                <li><a href="https://southjerseysourdough.com/pages/recipes">Recipes</a></li>
+                <li><a href="https://southjerseysourdough.com/pages/instructions">Starter Guide</a></li>
+                <li><a href="https://southjerseysourdough.com/pages/bakers-guide">The Baker's Guide</a></li>
+                <li><a href="https://southjerseysourdough.com/pages/about">About</a></li>
+                <li><a href="https://southjerseysourdough.com/pages/contact">Contact</a></li>
+              </ul>
+            </div>
+
+            {/* Support column */}
+            <div>
+              <p className="sjs-footer-col-heading">Support</p>
+              <ul className="sjs-footer-links">
+                <li><a href="https://southjerseysourdough.com/pages/contact">Contact Us</a></li>
+                <li><a href="https://southjerseysourdough.com/pages/starter-care">Starter Care</a></li>
+                <li><a href="mailto:help@southjerseysourdough.com">help@southjerseysourdough.com</a></li>
+              </ul>
+            </div>
+
+            {/* Policies column */}
+            <div>
+              <p className="sjs-footer-col-heading">Policies</p>
+              <ul className="sjs-footer-links">
+                <li><a href="https://southjerseysourdough.com/policies/shipping-policy">Shipping Policy</a></li>
+                <li><a href="https://southjerseysourdough.com/policies/refund-policy">Refund Policy</a></li>
+                <li><a href="https://southjerseysourdough.com/policies/privacy-policy">Privacy Policy</a></li>
+                <li><a href="https://southjerseysourdough.com/policies/terms-of-service">Terms of Service</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="sjs-footer-divider" aria-hidden="true">
+            <span className="sjs-footer-ornament">✦ ❧ ✦</span>
+          </div>
+
+          <p className="sjs-footer-copy">
+            © {new Date().getFullYear()} South Jersey Sourdough. Made with patience and flour.
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }
@@ -1362,6 +1455,41 @@ function WheatFlourish() {
         <path d="M48 4 L 48 -2" strokeWidth="1" />
         <path d="M48 8 L 42 -1" strokeWidth="0.9" />
         <path d="M48 8 L 54 -1" strokeWidth="0.9" />
+      </g>
+    </svg>
+  );
+}
+
+function SJSJarIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="56"
+      viewBox="0 0 48 60"
+      width="48"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        {/* jar body */}
+        <path
+          d="M10 22 C 8 24 7 28 7 34 C 7 46 11 54 24 54 C 37 54 41 46 41 34 C 41 28 40 24 38 22 Z"
+          fill="currentColor"
+          fillOpacity="0.08"
+          strokeWidth="1.4"
+        />
+        {/* neck */}
+        <path d="M14 22 L 14 16 C 14 14 16 13 18 13 L 30 13 C 32 13 34 14 34 16 L 34 22" strokeWidth="1.3" />
+        {/* lid */}
+        <rect x="12" y="10" width="24" height="4" rx="2" fill="currentColor" fillOpacity="0.15" strokeWidth="1.3" />
+        {/* bubbles */}
+        <circle cx="20" cy="36" r="2.2" fill="currentColor" fillOpacity="0.3" stroke="none" />
+        <circle cx="28" cy="30" r="1.5" fill="currentColor" fillOpacity="0.25" stroke="none" />
+        <circle cx="24" cy="42" r="1.8" fill="currentColor" fillOpacity="0.2" stroke="none" />
+        <circle cx="17" cy="44" r="1.2" fill="currentColor" fillOpacity="0.18" stroke="none" />
+        <circle cx="31" cy="40" r="1.4" fill="currentColor" fillOpacity="0.22" stroke="none" />
+        {/* shine */}
+        <path d="M 13 28 C 13 26 15 24 17 24" strokeWidth="1" opacity="0.4" />
       </g>
     </svg>
   );

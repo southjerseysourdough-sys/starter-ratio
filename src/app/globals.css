@@ -738,3 +738,243 @@ input[type="number"]::-webkit-outer-spin-button {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(101, 57, 27, 0.55);
 }
+
+/* ─── Top nav bar ──────────────────────────────────────────────── */
+.sjs-topnav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  padding: 0.6rem 0;
+  background:
+    linear-gradient(180deg, rgba(245, 236, 224, 0.97) 0%, rgba(240, 229, 214, 0.97) 100%);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(101, 57, 27, 0.1);
+  box-shadow:
+    0 1px 0 rgba(255, 250, 240, 0.6) inset,
+    0 2px 12px rgba(58, 32, 14, 0.06);
+}
+
+.sjs-topnav-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #6a3f22;
+  text-decoration: none;
+  opacity: 0.78;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    gap 0.2s ease;
+}
+
+.sjs-topnav-back:hover {
+  opacity: 1;
+  color: var(--crust-dark);
+  gap: 0.7rem;
+}
+
+.sjs-topnav-arrow {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.sjs-topnav-back:hover .sjs-topnav-arrow {
+  transform: translateX(-3px);
+}
+
+.sjs-topnav-shop {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid rgba(101, 57, 27, 0.3);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #6a3f22;
+  text-decoration: none;
+  background: rgba(255, 250, 244, 0.7);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.sjs-topnav-shop:hover {
+  background: #70462b;
+  border-color: #70462b;
+  color: #fffaf4;
+}
+
+/* ─── Footer ───────────────────────────────────────────────────── */
+.sjs-footer {
+  position: relative;
+  margin-top: 2rem;
+  background:
+    linear-gradient(180deg, #e8ddd0 0%, #dfd0be 100%);
+  border-top: 1px solid rgba(101, 57, 27, 0.12);
+}
+
+.sjs-footer::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 250, 240, 0.7) 40%,
+    rgba(255, 250, 240, 0.7) 60%,
+    transparent
+  );
+}
+
+.sjs-footer-inner {
+  padding-top: 3rem;
+  padding-bottom: 2rem;
+}
+
+.sjs-footer-grid {
+  display: grid;
+  gap: 2.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .sjs-footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sjs-footer-grid {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 3rem;
+  }
+}
+
+.sjs-footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sjs-footer-logo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  color: #3b2618;
+  transition: opacity 0.15s ease;
+}
+
+.sjs-footer-logo-link:hover {
+  opacity: 0.8;
+}
+
+.sjs-footer-name {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 70, "opsz" 24;
+  font-weight: 600;
+  font-size: 1.1rem;
+  line-height: 1.25;
+  color: #3b2618;
+}
+
+.sjs-footer-verse {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #8c5f3f;
+  margin-top: 0.2rem;
+}
+
+.sjs-footer-tagline {
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: #5c3e29;
+  opacity: 0.8;
+  max-width: 22rem;
+}
+
+.sjs-footer-col-heading {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #70462b;
+  margin-bottom: 0.85rem;
+}
+
+.sjs-footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.sjs-footer-links a {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #4a2f1d;
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  word-break: break-all;
+}
+
+.sjs-footer-links a:hover {
+  opacity: 1;
+  color: #70462b;
+}
+
+.sjs-footer-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2.5rem 0 1.5rem;
+}
+
+.sjs-footer-divider::before,
+.sjs-footer-divider::after {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(101, 57, 27, 0.2)
+  );
+  content: "";
+}
+
+.sjs-footer-divider::after {
+  background: linear-gradient(
+    90deg,
+    rgba(101, 57, 27, 0.2),
+    transparent
+  );
+}
+
+.sjs-footer-ornament {
+  padding: 0 1rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  color: #b88654;
+  opacity: 0.6;
+}
+
+.sjs-footer-copy {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #5c3e29;
+  opacity: 0.65;
+}
