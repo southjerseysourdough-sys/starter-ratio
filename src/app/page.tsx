@@ -74,7 +74,7 @@ const FEED_HYDRATIONS: Array<{
   { label: "100% hydration feed", value: "100" },
   { label: "75% hydration feed", value: "75" },
   { label: "60% hydration feed", value: "60" },
-  { label: "Custom", value: "custom" },
+  { label: "Other", value: "custom" },
 ];
 
 function toNumber(value: string) {
@@ -387,6 +387,15 @@ export default function Home() {
     inoculation,
     currentFeedHydration,
   );
+  const showFeedHydration = starterType !== "liquid";
+  const visibleStarterTypes = STARTER_TYPES.filter(
+    (option) => option.value !== "custom" || starterType === "custom",
+  );
+  const visibleFeedHydrations = FEED_HYDRATIONS.filter(
+    (option) => !(starterType === "stiff" && option.value === "100"),
+  );
+  const hasCustomAdvancedValue =
+    starterType === "custom" || activeInoculationPreset === undefined;
 
   function measuredAmount(grams: number, ingredient: FormulaIngredient) {
     const converted = gramsToMeasure(
@@ -842,75 +851,66 @@ export default function Home() {
                     {customRatioError}
                   </p>
                 ) : null}
-                <p className="helper-copy text-sm font-semibold leading-6 text-[#76563e]">
-                  Equivalent inoculation:{" "}
-                  <span className="font-bold text-[#321f14]">
-                    {formatDisplay(inoculation, 1)}%
-                  </span>
-                </p>
               </div>
 
-              <div className="grid gap-5 xl:grid-cols-2">
+              <div
+                className={`grid gap-5 ${
+                  showFeedHydration ? "xl:grid-cols-2" : ""
+                }`}
+              >
                 <div className="grid gap-3">
                   <span className="field-label">Starter Type</span>
                   <div className="grid gap-2">
-                    {STARTER_TYPES.map((option) => (
+                    {visibleStarterTypes.map((option) => (
                       <OptionButton
                         active={starterType === option.value}
-                        description={option.description}
+                        description={
+                          option.value === "custom"
+                            ? `${formatDisplay(
+                                currentStarterHydration,
+                                1,
+                              )}% hydration`
+                            : option.description
+                        }
                         key={option.value}
                         label={option.label}
                         onClick={() => updateStarterType(option.value)}
                       />
                     ))}
                   </div>
-                  {starterType === "custom" ? (
-                    <label className="grid gap-2">
-                      <span className="text-sm font-bold text-[#76563e]">
-                        Starter hydration percentage
-                      </span>
-                      <input
-                        className="input-standard"
-                        inputMode="decimal"
-                        onChange={(event) =>
-                          setCustomStarterHydration(event.target.value)
-                        }
-                        type="text"
-                        value={customStarterHydration}
-                      />
-                    </label>
-                  ) : null}
                 </div>
 
-                <div className="grid gap-3">
-                  <span className="field-label">Feed Hydration</span>
-                  <div className="grid gap-2">
-                    {FEED_HYDRATIONS.map((option) => (
-                      <OptionButton
-                        active={feedHydration === option.value}
-                        key={option.value}
-                        label={option.label}
-                        onClick={() => chooseFeedHydration(option.value)}
-                      />
-                    ))}
+                {showFeedHydration ? (
+                  <div className="grid gap-3">
+                    <span className="field-label">Feed Hydration</span>
+                    <div className="grid gap-2">
+                      {visibleFeedHydrations.map((option) => (
+                        <OptionButton
+                          active={feedHydration === option.value}
+                          key={option.value}
+                          label={option.label}
+                          onClick={() => chooseFeedHydration(option.value)}
+                        />
+                      ))}
+                    </div>
+                    {feedHydration === "custom" ? (
+                      <label className="grid gap-2">
+                        <span className="text-sm font-bold text-[#76563e]">
+                          Feed hydration percentage
+                        </span>
+                        <input
+                          className="input-standard"
+                          inputMode="decimal"
+                          onChange={(event) =>
+                            updateCustomFeedHydration(event.target.value)
+                          }
+                          type="text"
+                          value={customFeedHydration}
+                        />
+                      </label>
+                    ) : null}
                   </div>
-                  {feedHydration === "custom" ? (
-                    <label className="grid gap-2">
-                      <span className="text-sm font-bold text-[#76563e]">
-                        Feed hydration percentage
-                      </span>
-                      <input
-                        className="input-standard"
-                        inputMode="decimal"
-                        onChange={(event) =>
-                          updateCustomFeedHydration(event.target.value)
-                        }
-                        type="text"
-                        value={customFeedHydration}
-                      />
-                    </label>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
 
               <details
@@ -921,66 +921,123 @@ export default function Home() {
                 open={advancedOpen}
               >
                 <summary className="advanced-summary field-label cursor-pointer list-none">
-                  Advanced Options
+                  <span className="inline-flex items-center gap-2">
+                    Advanced Options
+                    {hasCustomAdvancedValue ? (
+                      <span
+                        aria-label="Custom values active"
+                        className="inline-block h-2 w-2 rounded-full bg-[#a33f2a]"
+                        title="Custom values active"
+                      />
+                    ) : null}
+                  </span>
                 </summary>
-                <div className="advanced-options-content mt-4 grid gap-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                    <span className="field-label">
-                      Use inoculation percentage instead
-                    </span>
-                    <p className="helper-copy max-w-xl text-sm leading-6 text-[#76563e]">
-                      Inoculation is the amount of mature starter compared to
-                      the new flour. Lower percentages slow the build; higher
-                      percentages speed it up.
+                <div className="advanced-options-content mt-4 grid gap-5">
+                  <div className="grid gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                      <span className="field-label">Starter Hydration</span>
+                      <p className="helper-copy max-w-xl text-sm leading-6 text-[#76563e]">
+                        Use this if your starter is kept at a hydration other
+                        than 100% or 50%. Enter the percentage and it will be
+                        reflected in your water calculation.
+                      </p>
+                    </div>
+                    <div className="grid gap-2 sm:max-w-xs">
+                      <OptionButton
+                        active={starterType === "custom"}
+                        description="set hydration"
+                        label="Custom Starter"
+                        onClick={() => updateStarterType("custom")}
+                      />
+                    </div>
+                    {starterType === "custom" ? (
+                      <label className="grid gap-2 sm:max-w-xs">
+                        <span className="text-sm font-bold text-[#76563e]">
+                          Starter hydration percentage
+                        </span>
+                        <div className="relative">
+                          <input
+                            className="input-standard pr-12"
+                            inputMode="decimal"
+                            onChange={(event) =>
+                              setCustomStarterHydration(event.target.value)
+                            }
+                            type="text"
+                            value={customStarterHydration}
+                          />
+                          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-base font-bold text-[#8c6b54]">
+                            %
+                          </span>
+                        </div>
+                      </label>
+                    ) : null}
+                  </div>
+
+                  <div className="grid gap-3 border-t border-dotted border-[#d4b89f] pt-5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                      <span className="field-label">
+                        Use inoculation percentage instead
+                      </span>
+                      <p className="helper-copy max-w-xl text-sm leading-6 text-[#76563e]">
+                        Inoculation is the amount of mature starter compared to
+                        the new flour. Lower percentages slow the build; higher
+                        percentages speed it up.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {INOCULATION_PRESETS.map((preset) => (
+                        <PresetButton
+                          active={activeInoculationPreset === preset.value}
+                          helper={preset.helper}
+                          key={preset.label}
+                          label={preset.label}
+                          onClick={() => updateInoculation(preset.value)}
+                        />
+                      ))}
+                      <PresetButton
+                        active={!activeInoculationPreset}
+                        helper="set exact"
+                        label="Custom"
+                        onClick={() =>
+                          updateInoculation(toNumber(customInoculation))
+                        }
+                      />
+                    </div>
+
+                    <label className="grid gap-2 sm:max-w-xs">
+                      <span className="text-sm font-bold text-[#76563e]">
+                        Custom inoculation
+                      </span>
+                      <div className="relative">
+                        <input
+                          aria-label="Custom inoculation percentage"
+                          className="input-standard pr-12"
+                          inputMode="decimal"
+                          onChange={(event) =>
+                            updateCustomInoculation(event.target.value)
+                          }
+                          type="text"
+                          value={customInoculation}
+                        />
+                        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-base font-bold text-[#8c6b54]">
+                          %
+                        </span>
+                      </div>
+                    </label>
+                    <p className="helper-copy text-sm font-semibold leading-6 text-[#76563e]">
+                      Equivalent inoculation:{" "}
+                      <span className="font-bold text-[#321f14]">
+                        {formatDisplay(inoculation, 1)}%
+                      </span>
+                    </p>
+                    <p className="helper-copy text-sm font-semibold leading-6 text-[#76563e]">
+                      Equivalent ratio at this feed hydration:{" "}
+                      <span className="font-bold text-[#321f14]">
+                        {equivalentRatio}
+                      </span>
                     </p>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {INOCULATION_PRESETS.map((preset) => (
-                      <PresetButton
-                        active={activeInoculationPreset === preset.value}
-                        helper={preset.helper}
-                        key={preset.label}
-                        label={preset.label}
-                        onClick={() => updateInoculation(preset.value)}
-                      />
-                    ))}
-                    <PresetButton
-                      active={!activeInoculationPreset}
-                      helper="set exact"
-                      label="Custom"
-                      onClick={() =>
-                        updateInoculation(toNumber(customInoculation))
-                      }
-                    />
-                  </div>
-
-                  <label className="grid gap-2 sm:max-w-xs">
-                    <span className="text-sm font-bold text-[#76563e]">
-                      Custom inoculation
-                    </span>
-                    <div className="relative">
-                      <input
-                        aria-label="Custom inoculation percentage"
-                        className="input-standard pr-12"
-                        inputMode="decimal"
-                        onChange={(event) =>
-                          updateCustomInoculation(event.target.value)
-                        }
-                        type="text"
-                        value={customInoculation}
-                      />
-                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-base font-bold text-[#8c6b54]">
-                        %
-                      </span>
-                    </div>
-                  </label>
-                  <p className="helper-copy text-sm font-semibold leading-6 text-[#76563e]">
-                    Equivalent ratio at this feed hydration:{" "}
-                    <span className="font-bold text-[#321f14]">
-                      {equivalentRatio}
-                    </span>
-                  </p>
                 </div>
               </details>
 
