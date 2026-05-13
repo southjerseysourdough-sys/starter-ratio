@@ -637,6 +637,12 @@ export default function Home() {
     }
 
     setStarterType(nextStarterType);
+
+    if (nextStarterType === "liquid" && currentFeedHydration !== 100) {
+      chooseFeedHydration("100");
+    } else if (nextStarterType === "stiff" && currentFeedHydration !== 60) {
+      chooseFeedHydration("60");
+    }
   }
 
   function selectJarDefault(liters: "1" | "1.5") {
