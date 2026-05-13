@@ -2,6 +2,7 @@ export type BuildMode = "flour" | "total";
 
 export type FormulaInput = {
   amountGrams: number;
+  feedHydrationPercent: number;
   inoculationPercent: number;
   mode: BuildMode;
   starterHydrationPercent: number;
@@ -11,6 +12,7 @@ export type FormulaResult = {
   finalTotal: number;
   flour: number;
   starter: number;
+  totalWater: number;
   water: number;
 };
 
@@ -36,30 +38,29 @@ export function ratioToInoculationPercent(ratio: RatioPreset) {
 
 export function calculateFormula({
   amountGrams,
+  feedHydrationPercent,
   inoculationPercent,
   mode,
   starterHydrationPercent,
 }: FormulaInput): FormulaResult {
-  const hydration = Math.max(starterHydrationPercent, 0) / 100;
+  const feedHydration = Math.max(feedHydrationPercent, 0) / 100;
   const inoculation = Math.max(inoculationPercent, 0) / 100;
+  const starterHydration = Math.max(starterHydrationPercent, 0) / 100;
   const amount = Math.max(amountGrams, 0);
 
-  let flour: number;
-  if (mode === "flour") {
-    flour = amount;
-  } else {
-    const denominator = inoculation + (1 + hydration) * (1 + hydration);
-    flour = denominator > 0 ? (amount * (1 + hydration)) / denominator : 0;
-  }
+  const flour =
+    mode === "flour" ? amount : amount / (1 + inoculation + feedHydration);
 
   const starter = flour * inoculation;
-  const waterFromStarter =
-    1 + hydration > 0 ? (starter * hydration) / (1 + hydration) : 0;
-  const totalWaterNeeded = flour * hydration;
-  const water = Math.max(totalWaterNeeded - waterFromStarter, 0);
-  const finalTotal = starter + flour + water;
+  const totalWater = flour * feedHydration;
+  const waterInStarter =
+    1 + starterHydration > 0
+      ? (starter * starterHydration) / (1 + starterHydration)
+      : 0;
+  const water = Math.max(totalWater - waterInStarter, 0);
+  const finalTotal = starter + flour + totalWater;
 
-  return { starter, flour, water, finalTotal };
+  return { starter, flour, totalWater, water, finalTotal };
 }
 
 export function getFermentationPaceNote(

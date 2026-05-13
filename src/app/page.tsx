@@ -270,15 +270,19 @@ function parseRatio(value: string): RatioPreset | null {
   };
 }
 
-function ratioEquivalentLabel(inoculationPercent: number) {
+function ratioEquivalentLabel(
+  inoculationPercent: number,
+  feedHydrationPercentValue: number,
+) {
   if (inoculationPercent <= 0) {
     return "1:0:0";
   }
 
   const inoculation = inoculationPercent / 100;
+  const feedHydrationValue = feedHydrationPercentValue / 100;
 
   return `1:${cleanNumber(1 / inoculation, 2)}:${cleanNumber(
-    1 / inoculation,
+    feedHydrationValue / inoculation,
     2,
   )}`;
 }
@@ -294,6 +298,7 @@ export default function Home() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [starterType, setStarterType] = useState<StarterType>("liquid");
   const [customStarterHydration, setCustomStarterHydration] = useState("100");
+  const [feedHydration, setFeedHydration] = useState(100);
   const [roomTemperature, setRoomTemperature] = useState(75);
   const [jarCapacity, setJarCapacity] = useState("1");
   const [jarUnit, setJarUnit] = useState<JarUnit>("L");
@@ -315,7 +320,8 @@ export default function Home() {
   );
   const activeClassicRatio = CLASSIC_RATIOS.find(
     (preset) =>
-      Math.abs(ratioToInoculationPercent(preset) - inoculation) < 0.15,
+      Math.abs(ratioToInoculationPercent(preset) - inoculation) < 0.15 &&
+      Math.abs((preset.water / preset.flour) * 100 - feedHydration) < 0.15,
   )?.label;
   const hasJarCapacity =
     jarCapacity.trim().length > 0 && jarCapacityGrams > 0;
@@ -332,11 +338,12 @@ export default function Home() {
     () =>
       calculateFormula({
         amountGrams,
+        feedHydrationPercent: feedHydration,
         inoculationPercent: inoculation,
         mode,
         starterHydrationPercent: currentStarterHydration,
       }),
-    [amountGrams, currentStarterHydration, inoculation, mode],
+    [amountGrams, currentStarterHydration, feedHydration, inoculation, mode],
   );
 
   const mixedFill = hasJarCapacity
@@ -355,7 +362,7 @@ export default function Home() {
     inoculation,
     roomTemperature,
   );
-  const equivalentRatio = ratioEquivalentLabel(inoculation);
+  const equivalentRatio = ratioEquivalentLabel(inoculation, feedHydration);
   const visibleStarterTypes = STARTER_TYPES.filter(
     (option) => option.value !== "custom" || starterType === "custom",
   );
@@ -514,21 +521,23 @@ export default function Home() {
     const safeValue = Math.max(value, 0);
     setInoculation(safeValue);
     setCustomInoculation(cleanNumber(safeValue, 2));
-    setCustomRatio(ratioEquivalentLabel(safeValue));
+    setCustomRatio(ratioEquivalentLabel(safeValue, feedHydration));
   }
 
   function updateCustomInoculation(value: string) {
     setCustomInoculation(value);
     const safeValue = Math.max(toNumber(value), 0);
     setInoculation(safeValue);
-    setCustomRatio(ratioEquivalentLabel(safeValue));
+    setCustomRatio(ratioEquivalentLabel(safeValue, feedHydration));
   }
 
   function selectRatio(ratio: RatioPreset) {
     const nextInoculation = ratioToInoculationPercent(ratio);
+    const nextFeedHydration = (ratio.water / ratio.flour) * 100;
 
     setInoculation(nextInoculation);
     setCustomInoculation(cleanNumber(nextInoculation, 2));
+    setFeedHydration(nextFeedHydration);
     setCustomRatio(ratio.label);
   }
 
@@ -1096,7 +1105,7 @@ export default function Home() {
                 />
                 <ResultRow
                   label="Feed Hydration"
-                  value={`${formatDisplay(currentStarterHydration, 1)}%`}
+                  value={`${formatDisplay(feedHydration, 1)}%`}
                 />
                 <ResultRow
                   label="Starter Type"
