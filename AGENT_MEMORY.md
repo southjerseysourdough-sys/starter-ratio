@@ -67,6 +67,12 @@ Starter type:
 - Custom Hydration.
 - Current implementation displays starter type context but does not decompose mature starter into component flour/water.
 
+Stiff starter ratio presets:
+- Show only `1:2:1` and `1:2:1.2`.
+- Default stiff starter selection is `1:2:1`.
+- Stiff preset buttons show feed hydration on line 2 (`50% hydration`, `60% hydration`) rather than inoculation.
+- Other stiff ratios stay available only through the custom ratio field.
+
 Jar logic:
 - `1L = 1000g` assumption.
 - Mixed fill: `final total / jar capacity`.

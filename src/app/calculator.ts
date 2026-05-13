@@ -34,15 +34,11 @@ export const CLASSIC_RATIOS: RatioPreset[] = [
 
 export const STIFF_RATIOS: RatioPreset[] = [
   { label: "1:2:1", starter: 1, flour: 2, water: 1 },
-  { label: "1:4:2", starter: 1, flour: 4, water: 2 },
-  { label: "1:5:2.5", starter: 1, flour: 5, water: 2.5 },
   { label: "1:2:1.2", starter: 1, flour: 2, water: 1.2 },
-  { label: "1:4:2.4", starter: 1, flour: 4, water: 2.4 },
-  { label: "1:5:3", starter: 1, flour: 5, water: 3 },
 ];
 
 export const LIQUID_DEFAULT_RATIO: RatioPreset = CLASSIC_RATIOS[3];
-export const STIFF_DEFAULT_RATIO: RatioPreset = STIFF_RATIOS[1];
+export const STIFF_DEFAULT_RATIO: RatioPreset = STIFF_RATIOS[0];
 
 export function ratioToInoculationPercent(ratio: RatioPreset) {
   return (ratio.starter / ratio.flour) * 100;

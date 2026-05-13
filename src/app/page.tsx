@@ -328,12 +328,6 @@ export default function Home() {
       Math.abs(ratioToInoculationPercent(preset) - inoculation) < 0.15 &&
       Math.abs((preset.water / preset.flour) * 100 - feedHydration) < 0.15,
   )?.label;
-  const stiff50Presets = STIFF_RATIOS.filter(
-    (preset) => Math.abs(preset.water / preset.flour - 0.5) < 0.01,
-  );
-  const stiff60Presets = STIFF_RATIOS.filter(
-    (preset) => Math.abs(preset.water / preset.flour - 0.6) < 0.01,
-  );
   const hasJarCapacity =
     jarCapacity.trim().length > 0 && jarCapacityGrams > 0;
   const outputDecimals = measureUnit === "oz" ? 2 : 0;
@@ -752,33 +746,19 @@ export default function Home() {
                 </div>
 
                 {starterType === "stiff" ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="grid gap-2">
-                      <span className="text-xs font-semibold text-[#8c6b54]">
-                        50% hydration
-                      </span>
-                      {stiff50Presets.map((preset) => (
-                        <RatioPresetButton
-                          active={activeClassicRatio === preset.label}
-                          key={preset.label}
-                          onClick={() => selectRatio(preset)}
-                          preset={preset}
-                        />
-                      ))}
-                    </div>
-                    <div className="grid gap-2">
-                      <span className="text-xs font-semibold text-[#8c6b54]">
-                        60% hydration
-                      </span>
-                      {stiff60Presets.map((preset) => (
-                        <RatioPresetButton
-                          active={activeClassicRatio === preset.label}
-                          key={preset.label}
-                          onClick={() => selectRatio(preset)}
-                          preset={preset}
-                        />
-                      ))}
-                    </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {STIFF_RATIOS.map((preset) => (
+                      <RatioPresetButton
+                        active={activeClassicRatio === preset.label}
+                        key={preset.label}
+                        onClick={() => selectRatio(preset)}
+                        preset={preset}
+                        secondaryLabel={`${formatDisplay(
+                          (preset.water / preset.flour) * 100,
+                          1,
+                        )}% hydration`}
+                      />
+                    ))}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
@@ -1236,7 +1216,7 @@ export default function Home() {
                 <li><a href="https://southjerseysourdough.com/collections">Shop</a></li>
                 <li><a href="https://southjerseysourdough.com/pages/recipes">Recipes</a></li>
                 <li><a href="https://southjerseysourdough.com/pages/instructions">Starter Guide</a></li>
-                <li><a href="https://southjerseysourdough.com/pages/bakers-guide">The Baker's Guide</a></li>
+                <li><a href="https://southjerseysourdough.com/pages/bakers-guide">The Baker&apos;s Guide</a></li>
                 <li><a href="https://southjerseysourdough.com/pages/about">About</a></li>
                 <li><a href="https://southjerseysourdough.com/pages/contact">Contact</a></li>
               </ul>
@@ -1281,12 +1261,16 @@ function RatioPresetButton({
   active,
   onClick,
   preset,
+  secondaryLabel,
 }: {
   active: boolean;
   onClick: () => void;
   preset: RatioPreset;
+  secondaryLabel?: string;
 }) {
   const mappedInoculation = ratioToInoculationPercent(preset);
+  const helperLabel =
+    secondaryLabel ?? `${formatDisplay(mappedInoculation, 1)}%`;
   return (
     <button
       className={`preset-control min-h-16 rounded-md border px-2 py-2 text-center transition ${
@@ -1299,7 +1283,7 @@ function RatioPresetButton({
     >
       <span className="block text-lg font-bold">{preset.label}</span>
       <span className="block text-xs font-semibold opacity-80">
-        {formatDisplay(mappedInoculation, 1)}%
+        {helperLabel}
       </span>
     </button>
   );
