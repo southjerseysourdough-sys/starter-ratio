@@ -425,25 +425,72 @@ export default function Home() {
         : "cups"
       : unitShortLabel(measureUnit);
 
+  const flourishLeftRef = useRef<HTMLDivElement | null>(null);
+  const flourishRightRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     const header = headerRef.current;
+    const flourishLeft = flourishLeftRef.current;
+    const flourishRight = flourishRightRef.current;
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    if (!header || motionQuery.matches) {
+    if (motionQuery.matches) {
       return;
     }
 
-    function updateHeaderDepth() {
-      const offset = Math.min(window.scrollY * 0.4, 40);
-      header?.style.setProperty("transform", `translateY(${offset}px)`);
+    let scrollOffset = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+    let frame = 0;
+
+    function apply() {
+      frame = 0;
+      if (header) {
+        header.style.transform = `translate3d(${pointerX * 4}px, ${
+          scrollOffset + pointerY * 2
+        }px, 0)`;
+      }
+      if (flourishLeft) {
+        flourishLeft.style.transform = `translate3d(${pointerX * -14}px, ${
+          pointerY * -8
+        }px, 0) rotate(${pointerX * -2}deg)`;
+      }
+      if (flourishRight) {
+        flourishRight.style.transform = `scaleX(-1) translate3d(${
+          pointerX * 14
+        }px, ${pointerY * -8}px, 0) rotate(${pointerX * 2}deg)`;
+      }
     }
 
-    updateHeaderDepth();
-    window.addEventListener("scroll", updateHeaderDepth, { passive: true });
+    function schedule() {
+      if (frame) return;
+      frame = requestAnimationFrame(apply);
+    }
+
+    function onScroll() {
+      scrollOffset = Math.min(window.scrollY * 0.4, 40);
+      schedule();
+    }
+
+    function onPointerMove(event: PointerEvent) {
+      const w = window.innerWidth || 1;
+      const h = window.innerHeight || 1;
+      pointerX = (event.clientX / w) * 2 - 1;
+      pointerY = (event.clientY / h) * 2 - 1;
+      schedule();
+    }
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", updateHeaderDepth);
-      header.style.removeProperty("transform");
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pointermove", onPointerMove);
+      if (frame) cancelAnimationFrame(frame);
+      if (header) header.style.removeProperty("transform");
+      if (flourishLeft) flourishLeft.style.removeProperty("transform");
+      if (flourishRight) flourishRight.style.removeProperty("transform");
     };
   }, []);
 
@@ -587,17 +634,29 @@ export default function Home() {
     <main className="starter-page min-h-screen px-5 py-6 text-[#3b2618] sm:px-8 lg:px-12">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <header
-          className="starter-header space-y-3 pt-2 sm:pt-6"
+          className="starter-header relative space-y-4 pt-2 sm:pt-6"
           ref={headerRef}
         >
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#8c5f3f]">
-            South Jersey Sourdough
-          </p>
+          <div
+            aria-hidden="true"
+            className="hero-flourish hero-flourish--left"
+            ref={flourishLeftRef}
+          >
+            <WheatFlourish />
+          </div>
+          <div
+            aria-hidden="true"
+            className="hero-flourish hero-flourish--right"
+            ref={flourishRightRef}
+          >
+            <WheatFlourish />
+          </div>
+          <p className="starter-eyebrow">South Jersey Sourdough</p>
           <div className="max-w-3xl space-y-3">
-            <h1 className="text-4xl font-semibold leading-tight text-[#321f14] sm:text-5xl">
+            <h1 className="display-heading text-5xl leading-[1.05] sm:text-6xl">
               Starter Feeding Calculator
             </h1>
-            <p className="max-w-2xl text-lg leading-8 text-[#6f4f39]">
+            <p className="lede max-w-2xl text-lg leading-8 sm:text-xl">
               Build a feeding formula by flour amount or final starter weight,
               using familiar ratios with hydration, inoculation, and jar rise
               in view.
@@ -900,8 +959,9 @@ export default function Home() {
                   value={roomTemperature}
                 />
                 <p
-                  className="helper-copy rounded-md border border-dotted border-[#d7b99e] bg-[#fbf2e8] px-4 py-3 text-sm font-semibold leading-6 text-[#6f4f39]"
+                  className="pace-note rounded-md px-4 py-3 text-sm font-semibold leading-6 text-[#6f4f39]"
                   id="pace-note"
+                  key={fermentationNote}
                 >
                   {fermentationNote}
                 </p>
@@ -978,23 +1038,27 @@ export default function Home() {
             </div>
           </div>
 
-          <aside className="starter-result rounded-lg border border-[#c8a98c] bg-[#fcf1e4] p-5 shadow-[0_24px_60px_rgba(69,43,24,0.12),0_8px_18px_rgba(69,43,24,0.08)] transition sm:p-6">
-            <div className="flex h-full flex-col gap-5">
+          <aside className="starter-result border border-[#c8a98c] p-5 transition sm:p-6">
+            <GrainMark className="corner-mark corner-mark--tl" />
+            <GrainMark className="corner-mark corner-mark--tr" />
+            <GrainMark className="corner-mark corner-mark--bl" />
+            <GrainMark className="corner-mark corner-mark--br" />
+            <div className="relative flex h-full flex-col gap-5">
               <output
                 aria-live="polite"
-                className="final-weight-card rounded-lg border border-[#d5b69b] bg-[#fff7ef] p-4"
+                className="final-weight-card rounded-lg border border-[#d5b69b] p-5"
               >
-                <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#8c5f3f]">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8c5f3f]">
                   Final Starter Weight
                 </p>
-                <p className="mt-2 text-6xl font-bold tracking-normal text-[#321f14] transition-all sm:text-7xl">
+                <p className="mt-2 flex items-baseline gap-2 transition-all">
                   <span
-                    className="result-value"
+                    className="hero-number result-value text-6xl sm:text-7xl"
                     key={finalTotalDisplayValue}
                   >
                     {finalTotalDisplayValue}
                   </span>
-                  <span className="ml-2 text-2xl text-[#76563e]">
+                  <span className="hero-unit text-2xl">
                     {finalTotalDisplayUnit}
                   </span>
                 </p>
@@ -1099,8 +1163,12 @@ export default function Home() {
           </aside>
         </section>
 
-        <footer className="border-t border-dotted border-[#c9aa90] py-5 text-center text-sm font-semibold text-[#7a563d]">
-          Built for real sourdough feeding by South Jersey Sourdough.
+        <footer className="starter-footer py-6 text-sm font-semibold text-[#7a563d]">
+          Built for real sourdough feeding by{" "}
+          <span className="font-display italic text-[#5c3e29]">
+            South Jersey Sourdough
+          </span>
+          .
         </footer>
       </div>
     </main>
@@ -1243,21 +1311,76 @@ function JarMeter({
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-sm font-bold text-[#4a2f1d]">{label}</span>
         <span
-          className={`text-sm font-bold ${
+          className={`text-sm font-bold tabular-nums ${
             tone === "warning" ? "text-[#8f321f]" : "text-[#6f4f39]"
           }`}
         >
           {formatDisplay(percent, 0)}%
         </span>
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-[#e7d5c2]">
+      <div className="jar-fill-track">
         <div
-          className={`jar-fill-bar h-full rounded-full ${
-            tone === "warning" ? "bg-[#b45335]" : "bg-[#8d704d]"
+          className={`jar-fill-bar ${
+            tone === "warning" ? "jar-fill-bar--warning" : ""
           }`}
           style={{ width: `${Math.min(percent, 100)}%` }}
         />
       </div>
     </div>
+  );
+}
+
+function WheatFlourish() {
+  return (
+    <svg
+      width="92"
+      height="180"
+      viewBox="0 0 92 180"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        {/* central stem */}
+        <path d="M46 178 C 48 140, 44 100, 50 62 C 54 32, 50 14, 48 4" strokeWidth="1.4" />
+        {/* grain pairs */}
+        <g strokeWidth="1.2" fill="currentColor" fillOpacity="0.22">
+          <ellipse cx="38" cy="22" rx="5" ry="9" transform="rotate(-22 38 22)" />
+          <ellipse cx="58" cy="22" rx="5" ry="9" transform="rotate(22 58 22)" />
+          <ellipse cx="34" cy="42" rx="5.5" ry="10" transform="rotate(-22 34 42)" />
+          <ellipse cx="62" cy="42" rx="5.5" ry="10" transform="rotate(22 62 42)" />
+          <ellipse cx="32" cy="64" rx="6" ry="11" transform="rotate(-22 32 64)" />
+          <ellipse cx="64" cy="64" rx="6" ry="11" transform="rotate(22 64 64)" />
+          <ellipse cx="34" cy="86" rx="6" ry="11" transform="rotate(-22 34 86)" />
+          <ellipse cx="62" cy="86" rx="6" ry="11" transform="rotate(22 62 86)" />
+        </g>
+        {/* side leaves */}
+        <path d="M46 118 C 28 122, 18 132, 14 148" strokeWidth="1.2" fill="none" />
+        <path d="M46 128 C 64 132, 74 140, 80 154" strokeWidth="1.2" fill="none" />
+        <path d="M46 142 C 32 146, 24 154, 22 168" strokeWidth="1.1" fill="none" />
+        <path d="M46 150 C 60 154, 68 160, 72 172" strokeWidth="1.1" fill="none" />
+        {/* tip whisker */}
+        <path d="M48 4 L 48 -2" strokeWidth="1" />
+        <path d="M48 8 L 42 -1" strokeWidth="0.9" />
+        <path d="M48 8 L 54 -1" strokeWidth="0.9" />
+      </g>
+    </svg>
+  );
+}
+
+function GrainMark({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 22 22"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <g stroke="currentColor" strokeWidth="1" strokeLinecap="round" fill="currentColor" fillOpacity="0.25">
+        <ellipse cx="6" cy="6" rx="2.2" ry="3.6" transform="rotate(-30 6 6)" />
+        <path d="M11 11 L 19 19" stroke="currentColor" strokeWidth="0.9" fill="none" />
+        <path d="M9 13 L 13 17" stroke="currentColor" strokeWidth="0.7" fill="none" />
+      </g>
+    </svg>
   );
 }
