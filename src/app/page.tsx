@@ -565,22 +565,6 @@ export default function Home() {
     setCustomRatio(ratioEquivalentLabel(safeValue, currentFeedHydration));
   }
 
-  function setFeedHydrationPercentValue(nextFeedHydration: number) {
-    const rounded = cleanNumber(nextFeedHydration, 2);
-
-    if (Math.abs(nextFeedHydration - 100) < 0.001) {
-      setFeedHydration("100");
-    } else if (Math.abs(nextFeedHydration - 75) < 0.001) {
-      setFeedHydration("75");
-    } else if (Math.abs(nextFeedHydration - 60) < 0.001) {
-      setFeedHydration("60");
-    } else {
-      setFeedHydration("custom");
-    }
-
-    setCustomFeedHydration(rounded);
-  }
-
   function chooseFeedHydration(nextFeedHydration: FeedHydration) {
     setFeedHydration(nextFeedHydration);
     const nextFeedHydrationValue =
@@ -600,12 +584,10 @@ export default function Home() {
 
   function selectRatio(ratio: RatioPreset) {
     const nextInoculation = ratioToInoculationPercent(ratio);
-    const nextFeedHydration = (ratio.water / ratio.flour) * 100;
 
     setInoculation(nextInoculation);
     setCustomInoculation(cleanNumber(nextInoculation, 2));
     setCustomRatio(ratio.label);
-    setFeedHydrationPercentValue(nextFeedHydration);
   }
 
   function updateCustomRatio(value: string) {
@@ -645,10 +627,21 @@ export default function Home() {
     }
   }
 
-  function selectJarDefault(liters: "1" | "1.5") {
-    setJarUnit("L");
-    setJarCapacity(liters);
-    setJarCapacityGrams(jarToGrams(liters, "L"));
+  function selectJarDefault(size: "small" | "large") {
+    const value =
+      jarUnit === "L"
+        ? size === "small"
+          ? "1"
+          : "1.5"
+        : jarUnit === "oz"
+          ? size === "small"
+            ? "32"
+            : "48"
+          : size === "small"
+            ? "1000"
+            : "1500";
+    setJarCapacity(value);
+    setJarCapacityGrams(jarToGrams(value, jarUnit));
   }
 
   return (
@@ -1057,17 +1050,25 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     className="preset-control rounded-md border border-dashed border-[#c8a98c] bg-[#fffaf4] px-3 py-3 text-sm font-bold text-[#4a2f1d] transition hover:border-[#8c5f3f] hover:bg-[#f4e6d7]"
-                    onClick={() => selectJarDefault("1")}
+                    onClick={() => selectJarDefault("small")}
                     type="button"
                   >
-                    1L = 1000g
+                    {jarUnit === "L"
+                      ? "1L = 1000g"
+                      : jarUnit === "oz"
+                        ? "32oz ≈ 1000g"
+                        : "1000g"}
                   </button>
                   <button
                     className="preset-control rounded-md border border-dashed border-[#c8a98c] bg-[#fffaf4] px-3 py-3 text-sm font-bold text-[#4a2f1d] transition hover:border-[#8c5f3f] hover:bg-[#f4e6d7]"
-                    onClick={() => selectJarDefault("1.5")}
+                    onClick={() => selectJarDefault("large")}
                     type="button"
                   >
-                    1.5L = 1500g
+                    {jarUnit === "L"
+                      ? "1.5L = 1500g"
+                      : jarUnit === "oz"
+                        ? "48oz ≈ 1500g"
+                        : "1500g"}
                   </button>
                 </div>
 
