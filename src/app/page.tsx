@@ -13,7 +13,6 @@ import {
 type MeasureUnit = "cup" | "g" | "oz";
 type JarUnit = "g" | "oz" | "L";
 type StarterType = "liquid" | "stiff" | "custom";
-type FeedHydration = "100" | "75" | "60" | "custom";
 type FormulaIngredient = "flour" | "starter" | "water";
 
 const GRAMS_PER_OUNCE = 28.349523125;
@@ -65,16 +64,6 @@ const STARTER_TYPES: Array<{
     description: "set hydration",
     value: "custom",
   },
-];
-
-const FEED_HYDRATIONS: Array<{
-  label: string;
-  value: FeedHydration;
-}> = [
-  { label: "100% hydration feed", value: "100" },
-  { label: "75% hydration feed", value: "75" },
-  { label: "60% hydration feed", value: "60" },
-  { label: "Other", value: "custom" },
 ];
 
 function toNumber(value: string) {
@@ -256,15 +245,6 @@ function starterTypeLabel(starterType: StarterType, customHydration: string) {
   return "Liquid Starter, 100%";
 }
 
-function feedHydrationPercent(
-  feedHydration: FeedHydration,
-  customHydration: string,
-) {
-  return feedHydration === "custom"
-    ? Math.max(toNumber(customHydration), 0)
-    : Number(feedHydration);
-}
-
 function parseRatio(value: string): RatioPreset | null {
   const parts = value
     .trim()
@@ -290,19 +270,15 @@ function parseRatio(value: string): RatioPreset | null {
   };
 }
 
-function ratioEquivalentLabel(
-  inoculationPercent: number,
-  feedHydrationPercentValue: number,
-) {
+function ratioEquivalentLabel(inoculationPercent: number) {
   if (inoculationPercent <= 0) {
     return "1:0:0";
   }
 
   const inoculation = inoculationPercent / 100;
-  const feedHydrationValue = feedHydrationPercentValue / 100;
 
   return `1:${cleanNumber(1 / inoculation, 2)}:${cleanNumber(
-    feedHydrationValue / inoculation,
+    1 / inoculation,
     2,
   )}`;
 }
@@ -318,8 +294,6 @@ export default function Home() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [starterType, setStarterType] = useState<StarterType>("liquid");
   const [customStarterHydration, setCustomStarterHydration] = useState("100");
-  const [feedHydration, setFeedHydration] = useState<FeedHydration>("100");
-  const [customFeedHydration, setCustomFeedHydration] = useState("100");
   const [roomTemperature, setRoomTemperature] = useState(75);
   const [jarCapacity, setJarCapacity] = useState("1");
   const [jarUnit, setJarUnit] = useState<JarUnit>("L");
@@ -329,9 +303,9 @@ export default function Home() {
   const activeInoculationPreset = INOCULATION_PRESETS.find(
     (preset) => Math.abs(preset.value - inoculation) < 0.001,
   )?.value;
-  const currentFeedHydration = feedHydrationPercent(
-    feedHydration,
-    customFeedHydration,
+  const currentStarterHydration = starterHydrationPercent(
+    starterType,
+    customStarterHydration,
   );
   const amountIngredient: FormulaIngredient =
     mode === "flour" ? "flour" : "starter";
@@ -341,9 +315,7 @@ export default function Home() {
   );
   const activeClassicRatio = CLASSIC_RATIOS.find(
     (preset) =>
-      Math.abs(ratioToInoculationPercent(preset) - inoculation) < 0.15 &&
-      Math.abs((preset.water / preset.flour) * 100 - currentFeedHydration) <
-        0.15,
+      Math.abs(ratioToInoculationPercent(preset) - inoculation) < 0.15,
   )?.label;
   const hasJarCapacity =
     jarCapacity.trim().length > 0 && jarCapacityGrams > 0;
@@ -360,11 +332,11 @@ export default function Home() {
     () =>
       calculateFormula({
         amountGrams,
-        feedHydrationPercent: currentFeedHydration,
         inoculationPercent: inoculation,
         mode,
+        starterHydrationPercent: currentStarterHydration,
       }),
-    [amountGrams, currentFeedHydration, inoculation, mode],
+    [amountGrams, currentStarterHydration, inoculation, mode],
   );
 
   const mixedFill = hasJarCapacity
@@ -383,16 +355,9 @@ export default function Home() {
     inoculation,
     roomTemperature,
   );
-  const equivalentRatio = ratioEquivalentLabel(
-    inoculation,
-    currentFeedHydration,
-  );
-  const showFeedHydration = starterType !== "liquid";
+  const equivalentRatio = ratioEquivalentLabel(inoculation);
   const visibleStarterTypes = STARTER_TYPES.filter(
     (option) => option.value !== "custom" || starterType === "custom",
-  );
-  const visibleFeedHydrations = FEED_HYDRATIONS.filter(
-    (option) => !(starterType === "stiff" && option.value === "100"),
   );
   const hasCustomAdvancedValue =
     starterType === "custom" || activeInoculationPreset === undefined;
@@ -419,24 +384,9 @@ export default function Home() {
     };
   }
 
-  const currentStarterHydration = starterHydrationPercent(
-    starterType,
-    customStarterHydration,
-  );
-  const starterHydrationFraction = currentStarterHydration / 100;
-  const starterWaterContribution =
-    starterHydrationFraction > 0
-      ? results.starter *
-        (starterHydrationFraction / (1 + starterHydrationFraction))
-      : 0;
-  const rawDisplayedWaterGrams = results.water - starterWaterContribution;
-  const displayedWaterGrams = Math.max(rawDisplayedWaterGrams, 0);
-  const starterCoversAllWater =
-    results.water > 0 && rawDisplayedWaterGrams <= 0;
-
   const starterAmount = measuredAmount(results.starter, "starter");
   const flourAmount = measuredAmount(results.flour, "flour");
-  const waterAmount = measuredAmount(displayedWaterGrams, "water");
+  const waterAmount = measuredAmount(results.water, "water");
   const finalTotalAmount = measuredAmount(results.finalTotal, "starter");
   const finalTotalDisplayValue =
     measureUnit === "cup"
@@ -564,31 +514,14 @@ export default function Home() {
     const safeValue = Math.max(value, 0);
     setInoculation(safeValue);
     setCustomInoculation(cleanNumber(safeValue, 2));
-    setCustomRatio(ratioEquivalentLabel(safeValue, currentFeedHydration));
+    setCustomRatio(ratioEquivalentLabel(safeValue));
   }
 
   function updateCustomInoculation(value: string) {
     setCustomInoculation(value);
     const safeValue = Math.max(toNumber(value), 0);
     setInoculation(safeValue);
-    setCustomRatio(ratioEquivalentLabel(safeValue, currentFeedHydration));
-  }
-
-  function chooseFeedHydration(nextFeedHydration: FeedHydration) {
-    setFeedHydration(nextFeedHydration);
-    const nextFeedHydrationValue =
-      nextFeedHydration === "custom"
-        ? Math.max(toNumber(customFeedHydration), 0)
-        : Number(nextFeedHydration);
-
-    setCustomRatio(ratioEquivalentLabel(inoculation, nextFeedHydrationValue));
-  }
-
-  function updateCustomFeedHydration(value: string) {
-    setCustomFeedHydration(value);
-    setCustomRatio(
-      ratioEquivalentLabel(inoculation, Math.max(toNumber(value), 0)),
-    );
+    setCustomRatio(ratioEquivalentLabel(safeValue));
   }
 
   function selectRatio(ratio: RatioPreset) {
@@ -628,12 +561,6 @@ export default function Home() {
     }
 
     setStarterType(nextStarterType);
-
-    if (nextStarterType === "liquid" && currentFeedHydration !== 100) {
-      chooseFeedHydration("100");
-    } else if (nextStarterType === "stiff" && currentFeedHydration !== 60) {
-      chooseFeedHydration("60");
-    }
   }
 
   function selectJarDefault(size: "small" | "large") {
@@ -853,64 +780,26 @@ export default function Home() {
                 ) : null}
               </div>
 
-              <div
-                className={`grid gap-5 ${
-                  showFeedHydration ? "xl:grid-cols-2" : ""
-                }`}
-              >
-                <div className="grid gap-3">
-                  <span className="field-label">Starter Type</span>
-                  <div className="grid gap-2">
-                    {visibleStarterTypes.map((option) => (
-                      <OptionButton
-                        active={starterType === option.value}
-                        description={
-                          option.value === "custom"
-                            ? `${formatDisplay(
-                                currentStarterHydration,
-                                1,
-                              )}% hydration`
-                            : option.description
-                        }
-                        key={option.value}
-                        label={option.label}
-                        onClick={() => updateStarterType(option.value)}
-                      />
-                    ))}
-                  </div>
+              <div className="grid gap-3">
+                <span className="field-label">Starter Type</span>
+                <div className="grid gap-2">
+                  {visibleStarterTypes.map((option) => (
+                    <OptionButton
+                      active={starterType === option.value}
+                      description={
+                        option.value === "custom"
+                          ? `${formatDisplay(
+                              currentStarterHydration,
+                              1,
+                            )}% hydration`
+                          : option.description
+                      }
+                      key={option.value}
+                      label={option.label}
+                      onClick={() => updateStarterType(option.value)}
+                    />
+                  ))}
                 </div>
-
-                {showFeedHydration ? (
-                  <div className="grid gap-3">
-                    <span className="field-label">Feed Hydration</span>
-                    <div className="grid gap-2">
-                      {visibleFeedHydrations.map((option) => (
-                        <OptionButton
-                          active={feedHydration === option.value}
-                          key={option.value}
-                          label={option.label}
-                          onClick={() => chooseFeedHydration(option.value)}
-                        />
-                      ))}
-                    </div>
-                    {feedHydration === "custom" ? (
-                      <label className="grid gap-2">
-                        <span className="text-sm font-bold text-[#76563e]">
-                          Feed hydration percentage
-                        </span>
-                        <input
-                          className="input-standard"
-                          inputMode="decimal"
-                          onChange={(event) =>
-                            updateCustomFeedHydration(event.target.value)
-                          }
-                          type="text"
-                          value={customFeedHydration}
-                        />
-                      </label>
-                    ) : null}
-                  </div>
-                ) : null}
               </div>
 
               <details
@@ -1032,7 +921,7 @@ export default function Home() {
                       </span>
                     </p>
                     <p className="helper-copy text-sm font-semibold leading-6 text-[#76563e]">
-                      Equivalent ratio at this feed hydration:{" "}
+                      Equivalent ratio:{" "}
                       <span className="font-bold text-[#321f14]">
                         {equivalentRatio}
                       </span>
@@ -1202,16 +1091,12 @@ export default function Home() {
                 />
                 <ResultRow
                   label="Water to Add"
-                  detail={
-                    starterCoversAllWater
-                      ? "Starter provides sufficient hydration."
-                      : waterAmount.detail
-                  }
+                  detail={waterAmount.detail}
                   value={waterAmount.value}
                 />
                 <ResultRow
                   label="Feed Hydration"
-                  value={`${formatDisplay(currentFeedHydration, 1)}%`}
+                  value={`${formatDisplay(currentStarterHydration, 1)}%`}
                 />
                 <ResultRow
                   label="Starter Type"

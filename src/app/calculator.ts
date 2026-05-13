@@ -2,9 +2,9 @@ export type BuildMode = "flour" | "total";
 
 export type FormulaInput = {
   amountGrams: number;
-  feedHydrationPercent: number;
   inoculationPercent: number;
   mode: BuildMode;
+  starterHydrationPercent: number;
 };
 
 export type FormulaResult = {
@@ -36,20 +36,27 @@ export function ratioToInoculationPercent(ratio: RatioPreset) {
 
 export function calculateFormula({
   amountGrams,
-  feedHydrationPercent,
   inoculationPercent,
   mode,
+  starterHydrationPercent,
 }: FormulaInput): FormulaResult {
-  const feedHydration = Math.max(feedHydrationPercent, 0) / 100;
+  const hydration = Math.max(starterHydrationPercent, 0) / 100;
   const inoculation = Math.max(inoculationPercent, 0) / 100;
   const amount = Math.max(amountGrams, 0);
 
-  const flour =
-    mode === "flour" ? amount : amount / (1 + inoculation + feedHydration);
+  let flour: number;
+  if (mode === "flour") {
+    flour = amount;
+  } else {
+    const denominator = inoculation + (1 + hydration) * (1 + hydration);
+    flour = denominator > 0 ? (amount * (1 + hydration)) / denominator : 0;
+  }
 
-  // Inoculation is mature starter as a percentage of the new flour added.
   const starter = flour * inoculation;
-  const water = flour * feedHydration;
+  const waterFromStarter =
+    1 + hydration > 0 ? (starter * hydration) / (1 + hydration) : 0;
+  const totalWaterNeeded = flour * hydration;
+  const water = Math.max(totalWaterNeeded - waterFromStarter, 0);
   const finalTotal = starter + flour + water;
 
   return { starter, flour, water, finalTotal };
