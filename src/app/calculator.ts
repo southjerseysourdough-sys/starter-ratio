@@ -56,29 +56,24 @@ export function calculateFormula({
 }
 
 export function getFermentationPaceNote(
-  inoculationPercent: number,
+  _inoculationPercent: number,
   roomTemperature: number,
 ) {
-  if (inoculationPercent >= 33 && roomTemperature >= 82) {
-    return "Very fast build. This may peak quickly and need feeding sooner.";
+  if (roomTemperature < 68) {
+    return "Slower build. Expect extended ferment time before peak.";
   }
 
-  if (inoculationPercent <= 15 && roomTemperature <= 70) {
-    return "Slow build. Good for overnight feeding or a cooler kitchen.";
+  if (roomTemperature <= 72) {
+    return "Moderate build. Good everyday feeding range.";
   }
 
-  if (inoculationPercent >= 33 || roomTemperature >= 80) {
-    return "Fast build. Watch for an early peak.";
-  }
-
-  if (
-    inoculationPercent >= 18 &&
-    inoculationPercent <= 30 &&
-    roomTemperature >= 72 &&
-    roomTemperature <= 78
-  ) {
+  if (roomTemperature <= 77) {
     return "Balanced build. Good everyday feeding range.";
   }
 
-  return "Balanced build. Good everyday feeding range.";
+  if (roomTemperature <= 82) {
+    return "Fast build. Watch for an early peak.";
+  }
+
+  return "Very fast build. This may peak quickly and need feeding sooner.";
 }

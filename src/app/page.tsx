@@ -410,9 +410,24 @@ export default function Home() {
     };
   }
 
+  const currentStarterHydration = starterHydrationPercent(
+    starterType,
+    customStarterHydration,
+  );
+  const starterHydrationFraction = currentStarterHydration / 100;
+  const starterWaterContribution =
+    starterHydrationFraction > 0
+      ? results.starter *
+        (starterHydrationFraction / (1 + starterHydrationFraction))
+      : 0;
+  const rawDisplayedWaterGrams = results.water - starterWaterContribution;
+  const displayedWaterGrams = Math.max(rawDisplayedWaterGrams, 0);
+  const starterCoversAllWater =
+    results.water > 0 && rawDisplayedWaterGrams <= 0;
+
   const starterAmount = measuredAmount(results.starter, "starter");
   const flourAmount = measuredAmount(results.flour, "flour");
-  const waterAmount = measuredAmount(results.water, "water");
+  const waterAmount = measuredAmount(displayedWaterGrams, "water");
   const finalTotalAmount = measuredAmount(results.finalTotal, "starter");
   const finalTotalDisplayValue =
     measureUnit === "cup"
@@ -815,7 +830,7 @@ export default function Home() {
                     className="input-standard"
                     inputMode="decimal"
                     onChange={(event) => updateCustomRatio(event.target.value)}
-                    placeholder="Example: 1:4:4"
+                    placeholder="e.g. 1:3:5"
                     type="text"
                     value={customRatio}
                   />
@@ -1123,7 +1138,11 @@ export default function Home() {
                 />
                 <ResultRow
                   label="Water"
-                  detail={waterAmount.detail}
+                  detail={
+                    starterCoversAllWater
+                      ? "Starter provides sufficient hydration."
+                      : waterAmount.detail
+                  }
                   value={waterAmount.value}
                 />
                 <ResultRow
