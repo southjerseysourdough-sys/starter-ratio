@@ -5,7 +5,10 @@ import {
   calculateFormula,
   CLASSIC_RATIOS,
   getFermentationPaceNote,
+  LIQUID_DEFAULT_RATIO,
   ratioToInoculationPercent,
+  STIFF_DEFAULT_RATIO,
+  STIFF_RATIOS,
   type BuildMode,
   type RatioPreset,
 } from "./calculator";
@@ -318,11 +321,19 @@ export default function Home() {
     () => measureToGrams(amount, measureUnit, amountIngredient, starterType),
     [amount, amountIngredient, measureUnit, starterType],
   );
-  const activeClassicRatio = CLASSIC_RATIOS.find(
+  const ratioPresets =
+    starterType === "stiff" ? STIFF_RATIOS : CLASSIC_RATIOS;
+  const activeClassicRatio = ratioPresets.find(
     (preset) =>
       Math.abs(ratioToInoculationPercent(preset) - inoculation) < 0.15 &&
       Math.abs((preset.water / preset.flour) * 100 - feedHydration) < 0.15,
   )?.label;
+  const stiff50Presets = STIFF_RATIOS.filter(
+    (preset) => Math.abs(preset.water / preset.flour - 0.5) < 0.01,
+  );
+  const stiff60Presets = STIFF_RATIOS.filter(
+    (preset) => Math.abs(preset.water / preset.flour - 0.6) < 0.01,
+  );
   const hasJarCapacity =
     jarCapacity.trim().length > 0 && jarCapacityGrams > 0;
   const outputDecimals = measureUnit === "oz" ? 2 : 0;
@@ -551,11 +562,9 @@ export default function Home() {
   }
 
   function updateStarterType(nextStarterType: StarterType) {
-    if (
-      mode === "total" &&
-      isVolumeUnit(measureUnit) &&
-      nextStarterType !== starterType
-    ) {
+    const isChanging = nextStarterType !== starterType;
+
+    if (mode === "total" && isVolumeUnit(measureUnit) && isChanging) {
       setAmount(
         cleanNumber(
           gramsToMeasure(
@@ -570,6 +579,14 @@ export default function Home() {
     }
 
     setStarterType(nextStarterType);
+
+    if (isChanging) {
+      if (nextStarterType === "liquid") {
+        selectRatio(LIQUID_DEFAULT_RATIO);
+      } else if (nextStarterType === "stiff") {
+        selectRatio(STIFF_DEFAULT_RATIO);
+      }
+    }
   }
 
   function selectJarDefault(size: "small" | "large") {
@@ -734,32 +751,47 @@ export default function Home() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-                  {CLASSIC_RATIOS.map((preset) => {
-                    const mappedInoculation =
-                      ratioToInoculationPercent(preset);
-
-                    return (
-                      <button
-                        className={`preset-control min-h-16 rounded-md border px-2 py-2 text-center transition ${
-                          activeClassicRatio === preset.label
-                            ? "starter-active-control shadow-sm"
-                            : "border-dashed border-[#c8a98c] bg-[#fffaf4] text-[#4a2f1d] hover:border-[#8c5f3f] hover:bg-[#f4e6d7] hover:shadow-sm"
-                        }`}
+                {starterType === "stiff" ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <span className="text-xs font-semibold text-[#8c6b54]">
+                        50% hydration
+                      </span>
+                      {stiff50Presets.map((preset) => (
+                        <RatioPresetButton
+                          active={activeClassicRatio === preset.label}
+                          key={preset.label}
+                          onClick={() => selectRatio(preset)}
+                          preset={preset}
+                        />
+                      ))}
+                    </div>
+                    <div className="grid gap-2">
+                      <span className="text-xs font-semibold text-[#8c6b54]">
+                        60% hydration
+                      </span>
+                      {stiff60Presets.map((preset) => (
+                        <RatioPresetButton
+                          active={activeClassicRatio === preset.label}
+                          key={preset.label}
+                          onClick={() => selectRatio(preset)}
+                          preset={preset}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                    {CLASSIC_RATIOS.map((preset) => (
+                      <RatioPresetButton
+                        active={activeClassicRatio === preset.label}
                         key={preset.label}
                         onClick={() => selectRatio(preset)}
-                        type="button"
-                      >
-                        <span className="block text-lg font-bold">
-                          {preset.label}
-                        </span>
-                        <span className="block text-xs font-semibold opacity-80">
-                          {formatDisplay(mappedInoculation, 1)}%
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                        preset={preset}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 <label className="grid gap-2 sm:max-w-xs">
                   <span className="text-sm font-bold text-[#76563e]">
@@ -1242,6 +1274,34 @@ export default function Home() {
         </div>
       </footer>
     </main>
+  );
+}
+
+function RatioPresetButton({
+  active,
+  onClick,
+  preset,
+}: {
+  active: boolean;
+  onClick: () => void;
+  preset: RatioPreset;
+}) {
+  const mappedInoculation = ratioToInoculationPercent(preset);
+  return (
+    <button
+      className={`preset-control min-h-16 rounded-md border px-2 py-2 text-center transition ${
+        active
+          ? "starter-active-control shadow-sm"
+          : "border-dashed border-[#c8a98c] bg-[#fffaf4] text-[#4a2f1d] hover:border-[#8c5f3f] hover:bg-[#f4e6d7] hover:shadow-sm"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      <span className="block text-lg font-bold">{preset.label}</span>
+      <span className="block text-xs font-semibold opacity-80">
+        {formatDisplay(mappedInoculation, 1)}%
+      </span>
+    </button>
   );
 }
 
