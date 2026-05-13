@@ -1137,7 +1137,7 @@ export default function Home() {
                   value={flourAmount.value}
                 />
                 <ResultRow
-                  label="Water"
+                  label="Water to Add"
                   detail={
                     starterCoversAllWater
                       ? "Starter provides sufficient hydration."
